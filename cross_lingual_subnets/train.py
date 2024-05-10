@@ -61,6 +61,28 @@ if __name__ == "__main__":
         default=1,
         help="The number of epochs"
     )
+    parser.add_argument(
+        "--use_mps",
+        action=argparse.BooleanOptionalAction,
+        help="Indicates whether to use MPS device"
+    )
+    parser.add_argument(
+        "--use_fp16",
+        action=argparse.BooleanOptionalAction,
+        help="Indicates whether to use mixed precision during training",
+    )
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=2e-5,
+        help="The learning rate"
+    )
+    parser.add_argument(
+        "--weight_decay",
+        type=float,
+        default=0.01,
+        help="The weight decay"
+    )
 
     args = parser.parse_args()
 
@@ -85,15 +107,15 @@ if __name__ == "__main__":
         overwrite_output_dir=True,
         evaluation_strategy="epoch",
         save_strategy="epoch",
-        learning_rate=2e-5,
-        weight_decay=0.01,
+        learning_rate=args.lr,
+        weight_decay=args.weight_decay,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
         push_to_hub=False,
-        fp16=False,
+        fp16=args.use_fp16,
         logging_steps=logging_steps,
         report_to="none", #TODO: set up WANDB logging
-        use_mps_device=True,
+        use_mps_device=args.use_mps,
         data_seed=args.seed,
         seed=args.seed,
         num_train_epochs=args.epochs,
