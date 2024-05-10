@@ -1,2 +1,5 @@
-torch
-numpy
+accelerate==0.30.0
+datasets==2.19.1
+numpy==1.26.4
+torch==2.2.2
+transformers==4.40.1
