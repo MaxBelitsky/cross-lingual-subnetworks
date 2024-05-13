@@ -26,13 +26,20 @@ def set_device():
     Function for setting the device.
     """
     if torch.cuda.is_available():
-        device = torch.device('cuda')
+        device = torch.device("cuda")
     else:
-        device = torch.device('cpu')
+        device = torch.device("cpu")
 
     try:
         if torch.backends.mps.is_available():
-            device = torch.device('mps')
+            device = torch.device("mps")
     except:
-        device = torch.device('cpu')
+        device = torch.device("cpu")
     return device
+
+
+def to_tensor(x) -> torch.tensor:
+    if not isinstance(x, torch.tensor):
+        x = torch.tensor(x)
+
+    return x
