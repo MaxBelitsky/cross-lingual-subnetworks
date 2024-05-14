@@ -1,25 +1,110 @@
-from datasets import load_dataset
+import logging
+from itertools import chain
+
+from datasets import load_dataset, DatasetDict, concatenate_datasets
 
 from cross_lingual_subnets.constants import Datasets
 
+logger = logging.getLogger(__name__)
 
-def get_dataset(dataset_name, tokenizer, cahce_dir=None):
+
+def get_dataset(
+    dataset_name,
+    tokenizer,
+    n_examples_per_lang=100_000,
+    seed=42,
+    test_size=3000,
+    cahce_dir=None,
+    languages=None,
+):
+    """ 
+    Load and preprocess the dataset.
+
+    Args:
+        dataset_name (str): The name of the dataset.
+        tokenizer (transformers.PreTrainedTokenizer): The tokenizer to use.
+        n_examples_per_lang (int): The maximum number of examples per language to keep.
+        seed (int): The random seed.
+        test_size (int): The size of the test set.
+        cahce_dir (str): The cache directory.
+        languages (list): The list of languages to include.
+
+    Returns:
+        datasets.DatasetDict: The preprocessed dataset.
+    """
     # Load the dataset
+    logger.info(f"Loading dataset {dataset_name}")
     dataset = load_dataset(dataset_name, cahce_dir=cahce_dir)
 
-    # TODO: Preprocess/filter/map columns based on the dataset
-    # The preprocessing might be different for each dataset
-    # TODO: group the sentences together for the MLM task
-    if dataset_name == Datasets.EXAMPLE:
-        dataset.pop("unsupervised")
+    if dataset_name == Datasets.WIKIPEDIA:
+        # Filter languages
+        if languages:
+            logger.info(f"Filtering languages: {languages}")
+            dataset = DatasetDict({lang: dataset[lang] for lang in languages})
+
+        # Tokenize the dataset
+        logger.info("Tokenizing the dataset")
         dataset = dataset.map(
-            lambda x: tokenizer(
-                x["text"], padding=True, truncation=True, return_tensors="pt"
-            ),
+            lambda x: tokenizer(x["text"]),
             batched=True,
-            remove_columns=["text", "label"]
+            remove_columns="text"
         )
-    else:
-        pass
+        # Chunk the dataset
+        logger.info("Chunking the dataset")
+        dataset = dataset.map(chunk_texts, batched=True)
+
+        # Downsample and split each language subset
+        logger.info(f"Downsampling to {n_examples_per_lang} examples per language")
+        dataset = DatasetDict(
+            {
+                lang: (
+                    dataset[lang].select(range(n_examples_per_lang))
+                    if len(dataset[lang]) > n_examples_per_lang
+                    else dataset[lang]
+                )
+                for lang in dataset
+            }
+        )
+        logger.info(f"Splitting the dataset with test size {test_size}")
+        dataset = DatasetDict(
+            {
+                lang: dataset[lang].train_test_split(
+                    test_size=test_size, shuffle=True, seed=seed
+                )
+                for lang in dataset
+            }
+        )
+
+        # Combine all languages
+        train_split = concatenate_datasets([dataset[lang]['train'] for lang in dataset], axis=0)
+        train_split = train_split.shuffle(seed=seed)
+        dataset = DatasetDict({"train": train_split, "test": DatasetDict({lang: dataset[lang]['test'] for lang in dataset})})
 
     return dataset
+
+
+def chunk_texts(examples, chunk_size=512):
+    """
+    Chunk the texts into chunks of size chunk_size to prepare for MLM training.
+    
+    Args:
+        examples (dict): The examples to chunk.
+        chunk_size (int): The size of the chunks.
+
+    Returns:
+        dict: The chunked examples.
+    """
+    # Concatenate all texts
+    concatenated_examples = {k: list(chain(*examples[k])) for k in examples.keys()}
+    # Compute length of concatenated texts
+    total_length = len(concatenated_examples[list(examples.keys())[0]])
+    # We drop the last chunk if it's smaller than chunk_size
+    total_length = (total_length // chunk_size) * chunk_size
+    # Split by chunks of max_len
+    result = {
+        k: [t[i : i + chunk_size] for i in range(0, total_length, chunk_size)]
+        for k, t in concatenated_examples.items()
+    }
+    # Create a new labels column
+    result["labels"] = result["input_ids"].copy()
+    return result
