@@ -126,6 +126,12 @@ if __name__ == "__main__":
         default=None,
         help="The cache directory for the dataset",
     )
+    parser.add_argument(
+        "--resume_from_checkpoint",
+        type=str,
+        default=None,
+        help="The checkpoint to resume training from",
+    )
 
     args = parser.parse_args()
 
@@ -189,7 +195,7 @@ if __name__ == "__main__":
 
     # Train the model
     if not args.eval_only:
-        trainer.train()
+        trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
         trainer.save_model(args.output_dir)
 
     # Evaluate the model
