@@ -15,7 +15,7 @@ def get_dataset(
     n_examples_per_lang=100_000,
     seed=42,
     test_size=3000,
-    cahce_dir=None,
+    cache_dir=None,
     languages=None,
 ):
     """ 
@@ -35,7 +35,7 @@ def get_dataset(
     """
     # Load the dataset
     logger.info(f"Loading dataset {dataset_name}")
-    dataset = load_dataset(dataset_name, num_proc=os.cpu_count()) # TODO: add cache dir
+    dataset = load_dataset(dataset_name, cache_dir=cache_dir, num_proc=os.cpu_count())
 
     if dataset_name == Datasets.WIKIPEDIA:
         # Filter languages

@@ -120,6 +120,12 @@ if __name__ == "__main__":
         required=False,
         help="The languages to include in the dataset. If not provided, all languages are included.",
     )
+    parser.add_argument(
+        "--cache_dir",
+        type=str,
+        default=None,
+        help="The cache directory for the dataset",
+    )
 
     args = parser.parse_args()
 
@@ -138,7 +144,7 @@ if __name__ == "__main__":
         seed=args.seed,
         test_size=args.test_examples_per_lang,
         n_examples_per_lang=args.examples_per_lang,
-        cahce_dir="data/", # TODO: fix
+        cache_dir=args.cache_dir,
         languages=args.languages
     )
     # TODO: this collator masks tokens randomly so we can get different values on two different evaluations
