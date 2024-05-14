@@ -38,11 +38,3 @@ def set_device():
     except:
         device = torch.device('cpu')
     return device
-
-
-def compute_metrics(pred):
-    logits = torch.from_numpy(pred.predictions)
-    labels = torch.from_numpy(pred.label_ids)
-    vocab_size = logits.shape[-1]
-    loss = F.cross_entropy(logits.view(-1, vocab_size), labels.view(-1))
-    return {'perplexity': math.exp(loss), 'loss': loss}
