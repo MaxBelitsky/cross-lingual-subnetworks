@@ -4,6 +4,7 @@ import logging
 
 from transformers import AutoModelForMaskedLM, AutoTokenizer, TrainingArguments, DataCollatorForLanguageModeling
 from dotenv import load_dotenv
+import wandb
 
 from cross_lingual_subnets.utils import set_device, set_seed
 from cross_lingual_subnets.data import get_dataset
@@ -132,6 +133,12 @@ if __name__ == "__main__":
         default=None,
         help="The checkpoint to resume training from",
     )
+    parser.add_argument(
+        "--last_run_id",
+        type=str,
+        default=None,
+        help="The wandb run id to resume training from",
+    )
 
     args = parser.parse_args()
 
@@ -195,8 +202,17 @@ if __name__ == "__main__":
 
     # Train the model
     if not args.eval_only:
-        trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
-        trainer.save_model(args.output_dir)
+        if args.last_run_id:
+            with wandb.init(
+                project=os.environ["WANDB_PROJECT"],
+                id=args.last_run_id,
+                resume="must",
+            ) as run:
+                trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
+                trainer.save_model(args.output_dir)
+        else:
+            trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
+            trainer.save_model(args.output_dir)
 
     # Evaluate the model
     results = trainer.evaluate()
