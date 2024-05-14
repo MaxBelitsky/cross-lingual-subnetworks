@@ -116,8 +116,7 @@ def rsa_report(data_enc1: dict, data_enc2: dict, cv=10):
     """Compute RSA and RSA_regress scores for two different encoders."""
     rsa_score = rsa(data_enc1["test"], data_enc2["test"])
 
-    # TODO: do we care about MSE and r2?
     rsa_reg = rsa_regress(
         data_enc1["test"], data_enc1["ref"], data_enc2["test"], data_enc2["ref"], cv=cv
-    )["pearson"]
+    )
     return dict(rsa=rsa_score, rsa_regress=rsa_reg)
