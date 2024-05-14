@@ -30,6 +30,12 @@ class CustomTrainer(Trainer):
                 dataset_metrics[f"eval_{eval_dataset_name}_perplexity"] = perplexity
 
                 metrics.update(dataset_metrics)
+
+            # Compute the mean loss to be used for determining the best checkpoint
+            metrics[f"{metric_key_prefix}_loss"] = sum(
+                metrics[f"{metric_key_prefix}_{eval_dataset_name}_loss"]
+                for eval_dataset_name in eval_dataset
+            ) / len(eval_dataset)
             return metrics
 
         # memory metrics - must set up as early as possible
