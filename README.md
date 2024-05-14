@@ -10,7 +10,7 @@
 
 To start training with the default arguments:
 ```
-python -m cross_lingual_subnets.train --dataset_name mbelitsky/wikipedia_subset --languages en sp ru de zh ar hi ur
+python -m cross_lingual_subnets.train --dataset_name mbelitsky/wikipedia_subset --languages en es ru de zh ar hi ur
 ```
 
 # Additional info
