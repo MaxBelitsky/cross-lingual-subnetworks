@@ -70,9 +70,8 @@ class Regress:
 
 def rsa(A, B):
     "Returns the correlation between the similarity matrices for A and B."
-    # TODO: or is it 1 - cosine?
-    M_A = cosine_matrix(A, A)
-    M_B = cosine_matrix(B, B)
+    M_A = 1 - cosine_matrix(A, A)
+    M_B = 1 - cosine_matrix(B, B)
     return pearson(triu(M_A), triu(M_B), dim=0)
 
 
