@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --job-name=MLM
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --time=15:00:00
+#SBATCH --output=subnetworks_output/mlm_fine_tuning%A.out
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+# Activate your environment
+source activate atcs-nli
+
+# Go to the directory
+cd $HOME/cross-lingual-subnetworks/
+
+echo "------------------------------------------------------------------------------------------------------------"
+echo "Starting training"
+srun python -m cross_lingual_subnets.train --dataset_name mbelitsky/wikipedia_subset \
+                                           --batch_size 8 \
+                                           --languages en es ru de zh ar hi ur \
+                                           --logging_steps 10000 \
+                                           --save_steps 10000 \
+                                           --epochs 1 \
+                                           --use_fp16 \
+                                           --cache_dir $TMPDIR/data/
