@@ -1,3 +1,4 @@
+import os
 import logging
 from itertools import chain
 
@@ -34,7 +35,7 @@ def get_dataset(
     """
     # Load the dataset
     logger.info(f"Loading dataset {dataset_name}")
-    dataset = load_dataset(dataset_name) # TODO: add cache dir
+    dataset = load_dataset(dataset_name, num_proc=os.cpu_count()) # TODO: add cache dir
 
     if dataset_name == Datasets.WIKIPEDIA:
         # Filter languages
