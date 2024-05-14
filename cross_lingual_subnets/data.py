@@ -34,7 +34,7 @@ def get_dataset(
     """
     # Load the dataset
     logger.info(f"Loading dataset {dataset_name}")
-    dataset = load_dataset(dataset_name, cahce_dir=cahce_dir)
+    dataset = load_dataset(dataset_name) # TODO: add cache dir
 
     if dataset_name == Datasets.WIKIPEDIA:
         # Filter languages
