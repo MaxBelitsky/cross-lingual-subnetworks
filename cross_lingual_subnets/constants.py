@@ -7,5 +7,4 @@ class ExtendedEnum(Enum):
         return list(map(lambda c: c.value, cls))
 
 class Datasets(str, ExtendedEnum):
-    EXAMPLE = "imdb"
-    # TODO: add actual datasets
+    WIKIPEDIA = "mbelitsky/wikipedia_subset"
