@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 def get_dataset(
     dataset_name,
     tokenizer,
-    n_examples_per_lang=100_000,
+    n_examples_per_lang=100000,
     seed=42,
     test_size=3000,
     cache_dir=None,
-    languages=None,
+    languages=None
 ):
     """ 
     Load and preprocess the dataset.
@@ -35,7 +35,7 @@ def get_dataset(
     """
     # Load the dataset
     logger.info(f"Loading dataset {dataset_name}")
-    dataset = load_dataset(dataset_name, cache_dir=cache_dir, num_proc=os.cpu_count())
+    dataset = load_dataset(dataset_name, cache_dir=cache_dir)
 
     if dataset_name == Datasets.WIKIPEDIA:
         # Filter languages
