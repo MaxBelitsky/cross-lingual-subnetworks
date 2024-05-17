@@ -14,6 +14,7 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import DataLoader, SequentialSampler, Subset, random_split
 from torch.utils.data.distributed import DistributedSampler
+from torcheval.metrics.text import Perplexity
 import numpy as np
 
 from transformers import XLMRobertaConfig, XLMRobertaForSequenceClassification, XLMRobertaTokenizer
@@ -160,7 +161,8 @@ def compute_metrics(task_name, preds, labels):
     # TODO: implement this function
     # compute metrics for the task
     # perplexity, accuracy, f1, etc.
-    return
+    if task_name == "mlm":
+        return {"perplexity": Perplexity().compute(predictions=preds, references=labels)}
 
 def mask_heads(args, model, eval_dataloader):
     """ This method shows how to mask head (set some heads to zero), to test the effect on the network,
