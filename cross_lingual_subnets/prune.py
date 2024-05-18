@@ -19,13 +19,14 @@ import numpy as np
 
 from transformers import XLMRobertaConfig, XLMRobertaForSequenceClassification, XLMRobertaTokenizer
 from transformers import glue_processors as processors
+from transformers import AutoTokenizer, AutoModel
 
 
 logger = logging.getLogger(__name__)
 
 
 MODEL_CLASSES = {
-    "xlmroberta": (XLMRobertaConfig, XLMRobertaForSequenceClassification, XLMRobertaTokenizer),
+    "xlm-r": (XLMRobertaConfig, XLMRobertaForSequenceClassification, XLMRobertaTokenizer),
 }
 
 def set_seed(seed, n_gpu):
@@ -277,7 +278,7 @@ def main():
         "--data_dir",
         default=None,
         type=str,
-        required=True,
+        required=False,
         help="The input data dir. Should contain the .tsv files (or other data files) for the task.",
     )
     parser.add_argument(
@@ -292,7 +293,7 @@ def main():
         "--model_name_or_path",
         default=None,
         type=str,
-        required=True,
+        required=False,
         # NOTE: now we have one model only, so this can be simplified
         #help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(ALL_MODELS),
     )
@@ -426,13 +427,13 @@ def main():
     set_seed(args.seed, args.n_gpu)
 
     # NOTE: not sure if this is needed, maybe we could change it
-    tracker = ImpactTracker(args.output_dir)
-    tracker.launch_impact_monitor()
+    #tracker = ImpactTracker(args.output_dir)
+    #tracker.launch_impact_monitor()
 
     # Prepare GLUE task
     args.task_name = args.task_name.lower()
-    if args.task_name not in processors:
-        raise ValueError("Task not found: %s" % (args.task_name))
+    #if args.task_name not in processors:
+    #    raise ValueError("Task not found: %s" % (args.task_name))
     
     # NOTE: this could be a bit redundant, we could remove it
     if args.metric_name is None:
@@ -442,10 +443,10 @@ def main():
         }[args.task_name]
     
     
-    processor = processors[args.task_name]()
-    args.output_mode = output_modes[args.task_name]
-    label_list = processor.get_labels()
-    num_labels = len(label_list)
+    #processor = processors[args.task_name]()
+    #args.output_mode = output_modes[args.task_name]
+    #label_list = processor.get_labels()
+    #num_labels = len(label_list)
 
     # Load pretrained model and tokenizer
     if args.local_rank not in [-1, 0]:
@@ -455,6 +456,7 @@ def main():
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
     #MODEL_CLASSES["bert"] = (BertConfig, BertForSequenceClassification, MODEL_CLASSES["bert"][1])
 
+    """
     config = config_class.from_pretrained(
         args.config_name if args.config_name else args.model_name_or_path,
         num_labels=num_labels,
@@ -472,6 +474,10 @@ def main():
         config=config,
         cache_dir=args.cache_dir if args.cache_dir else None,
     )
+    """
+
+    tokenizer = AutoTokenizer.from_pretrained('FacebookAI/xlm-roberta-base')
+    model = AutoModel.from_pretrained('FacebookAI/xlm-roberta-base')
 
     if args.local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
@@ -498,11 +504,13 @@ def main():
     if args.use_train_data:
         train_data = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
         eval_data = random_split(train_data, [true_eval_len, len(train_data) - true_eval_len])[0]
+    """
     if args.data_subset > 0:
         eval_data = Subset(eval_data, list(range(min(args.data_subset, len(eval_data)))))
-    """
+    
 
-    eval_data = args.eval_data['test']
+    data = args.eval_data
+    eval_data = data['test']
 
     eval_sampler = SequentialSampler(eval_data) if args.local_rank == -1 else DistributedSampler(eval_data)
     eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.batch_size)
