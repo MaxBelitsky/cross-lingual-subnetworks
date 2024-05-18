@@ -16,7 +16,9 @@ def get_dataset(
     seed=42,
     test_size=3000,
     cache_dir=None,
-    languages=None
+    languages=None,
+    load_dataset_dict_path=None,
+    save_dataset_dict_path=None
 ):
     """ 
     Load and preprocess the dataset.
@@ -33,6 +35,13 @@ def get_dataset(
     Returns:
         datasets.DatasetDict: The preprocessed dataset.
     """
+
+    if load_dataset_dict_path:
+      
+      dataset = DatasetDict()
+      dataset = dataset.load_from_disk(load_dataset_dict_path)
+      return dataset
+
     # Load the dataset
     logger.info(f"Loading dataset {dataset_name}")
     dataset = load_dataset(dataset_name, cache_dir=cache_dir)
@@ -77,9 +86,20 @@ def get_dataset(
         )
 
         # Combine all languages
+        '''
         train_split = concatenate_datasets([dataset[lang]['train'] for lang in dataset], axis=0)
         train_split = train_split.shuffle(seed=seed)
-        dataset = DatasetDict({"train": train_split, "test": DatasetDict({lang: dataset[lang]['test'] for lang in dataset})})
+        dataset = DatasetDict({"train": DatasetDict({lang: dataset[lang]['train'] for lang in dataset}), "test": DatasetDict({lang: dataset[lang]['test'] for lang in dataset})})
+        '''
+        # save languages separately within datasets dir
+
+        if save_dataset_dict_path:
+          
+          for lang in languages:
+              cur_path = f"{save_dataset_dict_path}/{lang}"
+              cur_dataset = DatasetDict({"train": dataset[lang]['train'], "test": dataset[lang]['test']})
+              cur_dataset.save_to_disk(cur_path)
+        
 
     return dataset
 

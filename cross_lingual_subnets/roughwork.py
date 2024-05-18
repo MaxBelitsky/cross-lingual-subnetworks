@@ -19,6 +19,8 @@ dataset = get_dataset(
     seed=1234,
     test_size=3000,
     cache_dir=None,
-    languages=['lt', 'ru', 'en', 'fr', 'de', 'zh', 'sw', 'ar', 'hi', 'fa', 'ur', 'es'],
+    languages=['fr'],
+    load_dataset_dict_path=None,
+    save_dataset_dict_path='wiki_datasets/'
 )
 
