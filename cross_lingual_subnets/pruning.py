@@ -104,7 +104,10 @@ def compute_heads_importance(
         '''
 
         input_ids, input_mask, label_ids = batch["input_ids"], batch["attention_mask"], batch["labels"]
-
+        input_ids = input_ids.to(args.device)
+        input_mask = input_mask.to(args.device)
+        label_ids = label_ids.to(args.device)
+        
         '''
         tokenizer = AutoTokenizer.from_pretrained('FacebookAI/xlm-roberta-base')
 
@@ -112,7 +115,7 @@ def compute_heads_importance(
         print(input_mask[0])
         print(tokenizer.decode(label_ids[0]))
         '''
-        
+
         # Do a forward pass (not with torch.no_grad() since we need gradients for importance score - see below)
         outputs = model(
             input_ids, attention_mask=input_mask, labels=label_ids, head_mask=head_mask
