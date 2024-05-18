@@ -319,6 +319,13 @@ def main():
         help="The language to use.",
     )
 
+    parser.add_argument(
+        "--eval_data",
+        default="",
+        type=str,
+        help="",
+    )
+
     # Other parameters
     parser.add_argument(
         "--config_name",
@@ -486,7 +493,7 @@ def main():
     # TODO: investigate if we need this load_and_cache_examples function
     # or we could just use the DataLoader directly from the dev set data
     # it probably depends on the task
-    eval_data = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=True)
+    #eval_data = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=True)
     """
     if args.use_train_data:
         train_data = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
@@ -494,6 +501,9 @@ def main():
     if args.data_subset > 0:
         eval_data = Subset(eval_data, list(range(min(args.data_subset, len(eval_data)))))
     """
+
+    eval_data = args.eval_data['test']
+
     eval_sampler = SequentialSampler(eval_data) if args.local_rank == -1 else DistributedSampler(eval_data)
     eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.batch_size)
 
