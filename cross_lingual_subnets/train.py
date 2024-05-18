@@ -10,6 +10,7 @@ from cross_lingual_subnets.utils import set_device, set_seed
 from cross_lingual_subnets.data import get_dataset
 from cross_lingual_subnets.constants import Datasets
 from cross_lingual_subnets.trainer import CustomTrainer
+from cross_lingual_subnets.create_subsets import WIKIPEDIA_DUMPS
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,7 @@ if __name__ == "__main__":
         type=str,
         nargs="*",
         required=False,
+        choices=WIKIPEDIA_DUMPS.keys(),
         help="The languages to include in the dataset. If not provided, all languages are included.",
     )
     parser.add_argument(
