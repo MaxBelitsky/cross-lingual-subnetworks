@@ -96,6 +96,8 @@ def compute_heads_importance(
     preds = None
     labels = None
     tot_tokens = 0.0
+
+    neg_log_likelihood = 0.0
     for step, batch in enumerate(tqdm(eval_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])):
         
         '''
@@ -120,13 +122,16 @@ def compute_heads_importance(
         outputs = model(
             input_ids, attention_mask=input_mask, labels=label_ids, head_mask=head_mask
         )
+
         loss, logits, all_attentions = (
             outputs[0],
             outputs[1],
             outputs[-1],
         )  # Loss and logits are the first, attention the last
-        loss.backward()  # Backpropagate to populate the gradients in the head mask
 
+        neg_log_likelihood += loss.cpu().detach().item()
+
+        loss.backward()  # Backpropagate to populate the gradients in the head mask
         if compute_entropy:
             for layer, attn in enumerate(all_attentions):
                 masked_entropy = entropy(attn.detach()) * input_mask.float().unsqueeze(1)
@@ -134,14 +139,16 @@ def compute_heads_importance(
 
         if compute_importance:
             head_importance += head_mask.grad.abs().detach()
-
         # Also store our logits/labels if we want to compute metrics afterwards
+
+        '''
         if preds is None:
             preds = logits.detach().cpu().numpy()
             labels = label_ids.detach().cpu().numpy()
         else:
             preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
             labels = np.append(labels, label_ids.detach().cpu().numpy(), axis=0)
+        '''
 
         tot_tokens += input_mask.float().detach().sum().data
 
@@ -178,7 +185,9 @@ def compute_heads_importance(
         head_ranks = head_ranks.view_as(head_importance)
         print_2d_tensor(head_ranks)
 
-    return attn_entropy, head_importance, preds, labels
+    perplexity = np.exp(neg_log_likelihood/tot_tokens)
+    print(f"Final perplexity: {perplexity}")
+    return attn_entropy, head_importance, perplexity
 
 def compute_metrics(task_name, preds, labels):
     # TODO: implement this function
@@ -491,7 +500,8 @@ def main():
     dataset = DatasetDict.load_from_disk(args.data_dir)
 
     eval_data = dataset['test']
-
+    eval_data = eval_data.select(range(300))
+    
     eval_sampler = SequentialSampler(eval_data) if args.local_rank == -1 else DistributedSampler(eval_data)
     data_collar = DataCollatorForLanguageModeling(tokenizer=tokenizer)
     eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.batch_size, collate_fn=data_collar)
