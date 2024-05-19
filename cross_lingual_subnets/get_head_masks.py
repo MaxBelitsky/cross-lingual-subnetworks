@@ -98,6 +98,9 @@ def compute_heads_importance(
     tot_tokens = 0.0
 
     neg_log_likelihood = 0.0
+
+    save_prefix = args.language + '_seed_' + str(args.seed) + "_"
+
     for step, batch in enumerate(tqdm(eval_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])):
         
         '''
@@ -129,7 +132,7 @@ def compute_heads_importance(
             outputs[-1],
         )  # Loss and logits are the first, attention the last
 
-        neg_log_likelihood += loss.cpu().detach().item()
+        neg_log_likelihood += input_mask.float().detach().sum().data*loss.float().detach().item()
 
         loss.backward()  # Backpropagate to populate the gradients in the head mask
         if compute_entropy:
@@ -157,7 +160,7 @@ def compute_heads_importance(
     if compute_entropy:
         # Normalize
         attn_entropy /= tot_tokens
-        np.save(os.path.join(args.output_dir, "attn_entropy.npy"), attn_entropy.detach().cpu().numpy())
+        np.save(os.path.join(args.output_dir, save_prefix + "attn_entropy.npy"), attn_entropy.detach().cpu().numpy())
         logger.info("Attention entropies")
         print_2d_tensor(attn_entropy)
     if compute_importance:
@@ -173,7 +176,7 @@ def compute_heads_importance(
             head_importance = (head_importance - head_importance.min()) / (head_importance.max() - head_importance.min())
 
         # Print/save matrices
-        np.save(os.path.join(args.output_dir, "head_importance.npy"), head_importance.detach().cpu().numpy())
+        np.save(os.path.join(args.output_dir, save_prefix + "head_importance.npy"), head_importance.detach().cpu().numpy())
 
         logger.info("Head importance scores")
         print_2d_tensor(head_importance)
@@ -185,8 +188,8 @@ def compute_heads_importance(
         head_ranks = head_ranks.view_as(head_importance)
         print_2d_tensor(head_ranks)
 
-    perplexity = np.exp(neg_log_likelihood/tot_tokens)
-    print(f"Final perplexity: {perplexity}")
+    perplexity = torch.exp(neg_log_likelihood/tot_tokens)
+    #print(f"Final perplexity: {perplexity}")
     return attn_entropy, head_importance, perplexity
 
 def compute_metrics(task_name, preds, labels):
@@ -200,17 +203,18 @@ def mask_heads(args, model, eval_dataloader):
     """ This method shows how to mask head (set some heads to zero), to test the effect on the network,
         based on the head importance scores, as described in Michel et al. (http://arxiv.org/abs/1905.10650)
     """
-    _, head_importance, preds, labels = compute_heads_importance(args, model, eval_dataloader, compute_entropy=False)
-    preds = np.argmax(preds, axis=1) if args.output_mode == "classification" else np.squeeze(preds)
-    original_score = compute_metrics(args.task_name, preds, labels)[args.metric_name]
-    logger.info("Pruning: original score: %f, threshold: %f", original_score, original_score * args.masking_threshold)
+    save_prefix = args.language + '_seed_' + str(args.seed) + "_"
+
+    _, head_importance, perplexity = compute_heads_importance(args, model, eval_dataloader, compute_entropy=False)
+    original_score = perplexity
+    logger.info("Pruning: original score (perplexity): %f, threshold: %f", original_score, original_score * args.masking_threshold)
 
     new_head_mask = torch.ones_like(head_importance)
     num_to_mask = max(1, int(new_head_mask.numel() * args.masking_amount))
 
     current_score = original_score
     i = 0
-    while current_score >= original_score * args.masking_threshold:            
+    while current_score <= original_score * args.masking_threshold:            
         head_mask = new_head_mask.clone()  # save current head mask
         if args.save_mask_all_iterations:
             np.save(os.path.join(args.output_dir, f"head_mask_{i}.npy"), head_mask.detach().cpu().numpy())
@@ -242,13 +246,13 @@ def mask_heads(args, model, eval_dataloader):
         print_2d_tensor(new_head_mask)
 
         # Compute metric and head importance again
-        _, head_importance, preds, labels = compute_heads_importance(
+        _, head_importance, cur_perplexity = compute_heads_importance(
             args, model, eval_dataloader, compute_entropy=False, head_mask=new_head_mask
         )
-        preds = np.argmax(preds, axis=1) if args.output_mode == "classification" else np.squeeze(preds)
-        current_score = compute_metrics(args.task_name, preds, labels)[args.metric_name]
+        current_score = cur_perplexity
+
         logger.info(
-            "Masking: current score: %f, remaning heads %d (%.1f percents)",
+            "Masking: current score: %f, remaining heads %d (%.1f percents)",
             current_score,
             new_head_mask.sum(),
             new_head_mask.sum() / new_head_mask.numel() * 100,
@@ -257,7 +261,7 @@ def mask_heads(args, model, eval_dataloader):
 
     logger.info("Final head mask")
     print_2d_tensor(head_mask)
-    np.save(os.path.join(args.output_dir, "head_mask.npy"), head_mask.detach().cpu().numpy())
+    np.save(os.path.join(args.output_dir, save_prefix + "head_mask.npy"), head_mask.detach().cpu().numpy())
 
     return head_mask
 
@@ -268,11 +272,10 @@ def prune_heads(args, model, eval_dataloader, head_mask):
     # Try pruning and test time speedup
     # Pruning is like masking but we actually remove the masked weights
     #before_time = datetime.now()
-    _, _, preds, labels = compute_heads_importance(
+    _, _, perplexity = compute_heads_importance(
         args, model, eval_dataloader, compute_entropy=False, compute_importance=False, head_mask=head_mask
     )
-    preds = np.argmax(preds, axis=1) if args.output_mode == "classification" else np.squeeze(preds)
-    score_masking = compute_metrics(args.task_name, preds, labels)[args.metric_name]
+    score_masking = perplexity
     #original_time = datetime.now() - before_time
 
     original_num_params = sum(p.numel() for p in model.parameters())
@@ -286,11 +289,10 @@ def prune_heads(args, model, eval_dataloader, head_mask):
     pruned_num_params = sum(p.numel() for p in model.parameters())
 
     #before_time = datetime.now()
-    _, _, preds, labels = compute_heads_importance(
+    _, _, perplexity = compute_heads_importance(
         args, model, eval_dataloader, compute_entropy=False, compute_importance=False, head_mask=None
     )
-    preds = np.argmax(preds, axis=1) if args.output_mode == "classification" else np.squeeze(preds)
-    score_pruning = compute_metrics(args.task_name, preds, labels)[args.metric_name]
+    score_pruning = perplexity
     #new_time = datetime.now() - before_time
 
     logger.info(
@@ -321,12 +323,17 @@ def main():
         help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()),
     )
     parser.add_argument(
-        "--model_name_or_path",
+        "--model_name",
         default=None,
         type=str,
-        required=True,
-        # NOTE: now we have one model only, so this can be simplified
-        #help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(ALL_MODELS),
+        # if you want to use a model from huggingface use this arg otherwise leave blank
+    )
+
+    parser.add_argument(
+        "--model_path",
+        default=None,
+        type=str,
+        # if you want to use a local checkpoint use this arg
     )
     parser.add_argument(
         "--task_name",
@@ -462,11 +469,23 @@ def main():
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
 
-    # Load the tokenizerx
-    tokenizer = AutoTokenizer.from_pretrained('FacebookAI/xlm-roberta-base')
+    assert args.model_name is None or args.model_path is None, "Only one of model_name and model_path should be used"
+    
+    if args.model_name:
+        # Load the tokenizer 
+        tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
-    # Load the model
-    model = AutoModelForMaskedLM.from_pretrained('FacebookAI/xlm-roberta-base')
+        # Load the model
+        model = AutoModelForMaskedLM.from_pretrained(args.model_name)
+
+    if args.model_path:
+
+        # Load the tokenizer (assuming it's going to be xlm-roberta)
+        tokenizer = AutoTokenizer.from_pretrained('FacebookAI/xlm-roberta-base')
+
+        # Load the model
+        model = AutoModelForMaskedLM.from_pretrained(args.model_path)
+
 
     if args.local_rank == 0:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
@@ -510,7 +529,9 @@ def main():
 
     # Try head masking (set heads to zero until the score goes under a threshold)
     # and head pruning (remove masked heads and see the effect on the network)
-    if args.try_masking and args.masking_threshold > 0.0 and args.masking_threshold < 1.0:
+    print(args.try_masking)
+    if args.try_masking: # remove condition on masking_threshold to be in [0, 1]
+        print("Creating head mask")
         head_mask = mask_heads(args, model, eval_dataloader)
         prune_heads(args, model, eval_dataloader, head_mask)
     else:

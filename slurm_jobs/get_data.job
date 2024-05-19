@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_mig
+#SBATCH --gpus=1
+#SBATCH --job-name=get_data
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --time=05:00:00
+#SBATCH --output=get_data.out
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+# Activate your environment
+source activate atcs-nli
+
+# Go to the directory
+cd $HOME/cross-lingual-subnetworks-luan/
+
+srun python -m cross_lingual_subnets.get_data --languages en es ru de zh ar hi ur

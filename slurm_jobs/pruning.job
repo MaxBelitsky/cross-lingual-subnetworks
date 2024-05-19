@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_mig
+#SBATCH --gpus=1
+#SBATCH --job-name=prune
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=18
+#SBATCH --time=10:00:00
+#SBATCH --output=prune.out
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+# Activate your environment
+source activate atcs-nli
+
+# Go to the directory
+cd $HOME/cross-lingual-subnetworks-luan/
+
+srun python -m cross_lingual_subnets.pruning --masking_threshold 1.1 --try_masking --data_dir ./wiki_datasets/en --model_type xlmroberta --model_path ./models/final_checkpoint --task_name mlm --output_dir prune_output --language en --batch_size 4 > slurm_out/prune_en.out
+
+srun python -m cross_lingual_subnets.pruning --masking_threshold 1.1 --try_masking --data_dir ./wiki_datasets/es --model_type xlmroberta --model_path ./models/final_checkpoint --task_name mlm --output_dir prune_output --language es --batch_size 4 > slurm_out/prune_es.out
+
+srun python -m cross_lingual_subnets.pruning --masking_threshold 1.1 --try_masking --data_dir ./wiki_datasets/ru --model_type xlmroberta --model_path ./models/final_checkpoint --task_name mlm --output_dir prune_output --language ru --batch_size 4 > slurm_out/prune_ru.out
+
+srun python -m cross_lingual_subnets.pruning --masking_threshold 1.1 --try_masking --data_dir ./wiki_datasets/de --model_type xlmroberta --model_path ./models/final_checkpoint --task_name mlm --output_dir prune_output --language de --batch_size 4 > slurm_out/prune_de.out
+
+srun python -m cross_lingual_subnets.pruning --masking_threshold 1.1 --try_masking --data_dir ./wiki_datasets/zh --model_type xlmroberta --model_path ./models/final_checkpoint --task_name mlm --output_dir prune_output --language zh --batch_size 4 > slurm_out/prune_zh.out
+
+srun python -m cross_lingual_subnets.pruning --masking_threshold 1.1 --try_masking --data_dir ./wiki_datasets/ar --model_type xlmroberta --model_path ./models/final_checkpoint --task_name mlm --output_dir prune_output --language ar --batch_size 4 > slurm_out/prune_ar.out
+
+srun python -m cross_lingual_subnets.pruning --masking_threshold 1.1 --try_masking --data_dir ./wiki_datasets/hi --model_type xlmroberta --model_path ./models/final_checkpoint --task_name mlm --output_dir prune_output --language hi --batch_size 4 > slurm_out/prune_hi.out
+
+srun python -m cross_lingual_subnets.pruning --masking_threshold 1.1 --try_masking --data_dir ./wiki_datasets/ur --model_type xlmroberta --model_path ./models/final_checkpoint --task_name mlm --output_dir prune_output --language ur --batch_size 4 > slurm_out/prune_ur.out
