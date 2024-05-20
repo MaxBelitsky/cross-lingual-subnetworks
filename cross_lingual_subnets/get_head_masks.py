@@ -519,7 +519,7 @@ def main():
     dataset = DatasetDict.load_from_disk(args.data_dir)
 
     eval_data = dataset['test']
-    eval_data = eval_data.select(range(300))
+    #eval_data = eval_data.select(range(300))
     
     eval_sampler = SequentialSampler(eval_data) if args.local_rank == -1 else DistributedSampler(eval_data)
     data_collar = DataCollatorForLanguageModeling(tokenizer=tokenizer)
