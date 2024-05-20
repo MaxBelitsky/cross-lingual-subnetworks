@@ -1,5 +1,5 @@
 
-from cross_lingual_subnets.data import get_dataset
+from cross_lingual_subnets.data import get_dataset_head_masks
 
 from transformers import AutoTokenizer, AutoModelForMaskedLM
 import argparse
@@ -20,7 +20,7 @@ args = parser.parse_args()
 
 # Load the dataset
 
-dataset = get_dataset(
+dataset = get_dataset_head_masks(
     dataset_name="mbelitsky/wikipedia_subset",
     tokenizer=tokenizer,
     n_examples_per_lang=100000,
