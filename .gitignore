@@ -166,3 +166,5 @@ models/
 
 wiki_datasets/
 prune_output/
+
+*.job
