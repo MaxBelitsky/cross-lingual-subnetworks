@@ -12,8 +12,13 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 BATCH_SIZE = 32
 MAX_SENTENCES = 1000
 
+
 def encode(
-    dataloader: DataLoader, model, tokenizer, language="en", experiment_name=Experiments.XLMR_BASE
+    dataloader: DataLoader,
+    model,
+    tokenizer,
+    language="en",
+    experiment_name=Experiments.XLMR_BASE,
 ):
     # encoded_input = tokenizer(texts, return_tensors="pt", padding=True)
     # # print(encoded_input.batch_size)
@@ -69,9 +74,7 @@ def get_bible_dataloaders_by_language(tokenizer) -> tuple[dict, list]:
             texts_by_language[lang].append(text[lang])
 
     # Define a custom collate function which takes in a vocab
-    collate_fn = lambda batch: collate_batch(  # noqa
-        batch, tokenizer=tokenizer
-    )
+    collate_fn = lambda batch: collate_batch(batch, tokenizer=tokenizer)  # noqa
 
     data_loader_kwargs = {
         "batch_size": BATCH_SIZE,
@@ -79,7 +82,12 @@ def get_bible_dataloaders_by_language(tokenizer) -> tuple[dict, list]:
         "pin_memory": True,
     }
 
-    dataloaders = {language: DataLoader(texts_by_language[language][:MAX_SENTENCES], **data_loader_kwargs) for language in languages}
+    dataloaders = {
+        language: DataLoader(
+            texts_by_language[language][:MAX_SENTENCES], **data_loader_kwargs
+        )
+        for language in languages
+    }
 
     return dataloaders, languages
 
@@ -93,7 +101,7 @@ if __name__ == "__main__":
         ("artifacts/pruned_en_mlm_finetuned", Experiments.EN_SUB_MLM_FINETUNED),
         ("artifacts/pruned_es_mlm_finetuned", Experiments.ES_SUB_MLM_FINETUNED),
         ("artifacts/pruned_hi_mlm_finetuned", Experiments.HI_SUB_MLM_FINETUNED),
-        ("artifacts/pruned_ru_mlm_finetuned", Experiments.UR_SUB_MLM_FINETUNED),
+        ("artifacts/pruned_ru_mlm_finetuned", Experiments.RU_SUB_MLM_FINETUNED),
         ("artifacts/pruned_zh_mlm_finetuned", Experiments.ZH_SUB_MLM_FINETUNED),
     ]
 
