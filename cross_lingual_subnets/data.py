@@ -18,7 +18,7 @@ def get_dataset(
     cache_dir=None,
     languages=None,
 ):
-    """ 
+    """
     Load and preprocess the dataset.
 
     Args:
@@ -46,9 +46,7 @@ def get_dataset(
         # Tokenize the dataset
         logger.info("Tokenizing the dataset")
         dataset = dataset.map(
-            lambda x: tokenizer(x["text"]),
-            batched=True,
-            remove_columns="text"
+            lambda x: tokenizer(x["text"]), batched=True, remove_columns="text"
         )
         # Chunk the dataset
         logger.info("Chunking the dataset")
@@ -77,9 +75,16 @@ def get_dataset(
         )
 
         # Combine all languages
-        train_split = concatenate_datasets([dataset[lang]['train'] for lang in dataset], axis=0)
+        train_split = concatenate_datasets(
+            [dataset[lang]["train"] for lang in dataset], axis=0
+        )
         train_split = train_split.shuffle(seed=seed)
-        dataset = DatasetDict({"train": train_split, "test": DatasetDict({lang: dataset[lang]['test'] for lang in dataset})})
+        dataset = DatasetDict(
+            {
+                "train": train_split,
+                "test": DatasetDict({lang: dataset[lang]["test"] for lang in dataset}),
+            }
+        )
 
     return dataset
 
@@ -87,7 +92,7 @@ def get_dataset(
 def chunk_texts(examples, chunk_size=512):
     """
     Chunk the texts into chunks of size chunk_size to prepare for MLM training.
-    
+
     Args:
         examples (dict): The examples to chunk.
         chunk_size (int): The size of the chunks.

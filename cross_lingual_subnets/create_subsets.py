@@ -93,7 +93,7 @@ if __name__ == "__main__":
     argparser.add_argument("--save_dir", type=str, default="data")
     argparser.add_argument("--hf_repo_id", type=str, required=False)
     argparser.add_argument("--seed", type=int, default=42)
-    
+
     args = argparser.parse_args()
 
     dataset = create_wikipedia_subsets(

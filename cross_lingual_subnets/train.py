@@ -2,7 +2,12 @@ import os
 import argparse
 import logging
 
-from transformers import AutoModelForMaskedLM, AutoTokenizer, TrainingArguments, DataCollatorForLanguageModeling
+from transformers import (
+    AutoModelForMaskedLM,
+    AutoTokenizer,
+    TrainingArguments,
+    DataCollatorForLanguageModeling,
+)
 from dotenv import load_dotenv
 import wandb
 
@@ -26,60 +31,44 @@ if __name__ == "__main__":
         type=str,
         help="The datasets to train on",
         required=True,
-        choices=Datasets.values()
+        choices=Datasets.values(),
     )
     parser.add_argument(
         "--model_checkpoint",
         type=str,
         help="The model variant to train",
-        default="FacebookAI/xlm-roberta-base"
+        default="FacebookAI/xlm-roberta-base",
     )
     parser.add_argument(
         "--output_dir",
         type=str,
         default="models/",
-        help="The output directory for the model"
+        help="The output directory for the model",
     )
     parser.add_argument(
-        "--seed",
-        type=int,
-        default=1234,
-        help="The random seed for reproducibility"
-        )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default=None,
-        help="The device to use for training"
-        )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=8,
-        help="The batch size"
+        "--seed", type=int, default=1234, help="The random seed for reproducibility"
     )
+    parser.add_argument(
+        "--device", type=str, default=None, help="The device to use for training"
+    )
+    parser.add_argument("--batch_size", type=int, default=8, help="The batch size")
     parser.add_argument(
         "--logging_steps",
         type=int,
         required=False,
-        help="The number of steps before logging metrics"
+        help="The number of steps before logging metrics",
     )
     parser.add_argument(
         "--save_steps",
         type=int,
         required=False,
-        help="The number of steps before logging metrics"
+        help="The number of steps before logging metrics",
     )
-    parser.add_argument(
-        "--epochs",
-        type=int,
-        default=1,
-        help="The number of epochs"
-    )
+    parser.add_argument("--epochs", type=int, default=1, help="The number of epochs")
     parser.add_argument(
         "--use_mps",
         action=argparse.BooleanOptionalAction,
-        help="Indicates whether to use MPS device"
+        help="Indicates whether to use MPS device",
     )
     parser.add_argument(
         "--use_fp16",
@@ -91,17 +80,9 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         help="Indicates whether to skip training",
     )
+    parser.add_argument("--lr", type=float, default=2e-5, help="The learning rate")
     parser.add_argument(
-        "--lr",
-        type=float,
-        default=2e-5,
-        help="The learning rate"
-    )
-    parser.add_argument(
-        "--weight_decay",
-        type=float,
-        default=0.01,
-        help="The weight decay"
+        "--weight_decay", type=float, default=0.01, help="The weight decay"
     )
     parser.add_argument(
         "--examples_per_lang",
@@ -160,7 +141,7 @@ if __name__ == "__main__":
         test_size=args.test_examples_per_lang,
         n_examples_per_lang=args.examples_per_lang,
         cache_dir=args.cache_dir,
-        languages=args.languages
+        languages=args.languages,
     )
     # TODO: this collator masks tokens randomly so we can get different values on two different evaluations
     # maybe it is needed to mask the tokens once before training
@@ -199,7 +180,7 @@ if __name__ == "__main__":
         train_dataset=dataset["train"],
         eval_dataset=dataset["test"],
         data_collator=data_collator,
-        tokenizer=tokenizer
+        tokenizer=tokenizer,
     )
 
     # Train the model

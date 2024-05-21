@@ -10,7 +10,7 @@ def gram_linear(x):
     Returns:
       A num_examples x num_examples Gram matrix of examples.
     """
-    return x.dot(x.T)
+    return np.dot(x, x.T)
 
 
 # def gram_rbf(x, threshold=1.0):
