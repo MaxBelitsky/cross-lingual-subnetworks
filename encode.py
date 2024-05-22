@@ -1,16 +1,23 @@
-from transformers import AutoModelForMaskedLM, AutoTokenizer
-from cross_lingual_subnets.constants import Experiments
+import argparse
 import json
 import os
-import torch
 from collections import defaultdict
-import sys
-from torch.utils.data import DataLoader
 
+import torch
+from cross_lingual_subnets.constants import Experiments
+from torch.utils.data import DataLoader
+from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-BATCH_SIZE = 32
-MAX_SENTENCES = 1000
+
+
+def mean_pooling(hidden_state, attention_mask):
+    input_mask_expanded = (
+        attention_mask.unsqueeze(-1).expand(hidden_state.size()).float()
+    )
+    return torch.sum(hidden_state * input_mask_expanded, 1) / torch.clamp(
+        input_mask_expanded.sum(1), min=1e-9
+    )
 
 
 def encode(
@@ -20,32 +27,20 @@ def encode(
     language="en",
     experiment_name=Experiments.XLMR_BASE,
 ):
-    # encoded_input = tokenizer(texts, return_tensors="pt", padding=True)
-    # # print(encoded_input.batch_size)
-    # # pipe = pipeline("masked-language-modeling", model=model, tokenizer=tokenizer, batch_size=32)
-    # # encoded_input = encoded_input.reshape()
-    # # text_chunks = chunks(texts, 100)
-
-    # # output = pipe(texts)
-    # # print("wooooooo")
-    # sys.exit(1)
-
     # Save hidden outputs per layer
     hids = {}
     for i, batch in enumerate(dataloader):
         print(f"Predicting batch {i+1}/{len(dataloader)}")
 
-        # One for the output of the embeddings, if the model has an embedding layer, + one
-        # for the output of each layer of shape (batch_size, sequence_length, hidden_size)
-        # TODO: is the outputs of the initial embedding layer added at the front or the back?
-        # See https://huggingface.co/docs/transformers/v4.40.2/en/model_doc/xlm-roberta#transformers.XLMRobertaModel
-        output = model(**batch, output_hidden_states=True)["hidden_states"][1:]
+        # Note! First layer here is embedding layer
+        with torch.no_grad():
+            output = model(**batch, output_hidden_states=True)["hidden_states"]
         # Aggregate averages of sentences (hence mean) per layer
         for j in range(len(output)):
             if i == 0:
-                hids[j] = output[j].mean(dim=1)
+                hids[j] = mean_pooling(output[j], batch["attention_mask"])
             else:
-                out = output[j].mean(dim=1)
+                out = mean_pooling(output[j], batch["attention_mask"])
                 hids[j] = torch.cat((hids[j], out), 0)
 
     exp_destination = f"data/encodings/{experiment_name}/{language}.pt"
@@ -63,7 +58,7 @@ def collate_batch(batch, tokenizer):
     return encoded_input
 
 
-def get_bible_dataloaders_by_language(tokenizer) -> tuple[dict, list]:
+def get_bible_dataloaders_by_language(args, tokenizer) -> tuple[dict, list]:
     with open("data/text/bible_parallel_corpus.json", "r", encoding="ISO-8859-1") as f:
         texts = json.load(f)
 
@@ -77,14 +72,14 @@ def get_bible_dataloaders_by_language(tokenizer) -> tuple[dict, list]:
     collate_fn = lambda batch: collate_batch(batch, tokenizer=tokenizer)  # noqa
 
     data_loader_kwargs = {
-        "batch_size": BATCH_SIZE,
+        "batch_size": args.batch_size,
         "collate_fn": collate_fn,
         "pin_memory": True,
     }
 
     dataloaders = {
         language: DataLoader(
-            texts_by_language[language][:MAX_SENTENCES], **data_loader_kwargs
+            texts_by_language[language][: args.max_sentences], **data_loader_kwargs
         )
         for language in languages
     }
@@ -105,16 +100,35 @@ if __name__ == "__main__":
         ("artifacts/pruned_zh_mlm_finetuned", Experiments.ZH_SUB_MLM_FINETUNED),
     ]
 
+    parser = argparse.ArgumentParser(
+        description="Encoding sentences using language models"
+    )
+
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        help="The batch size of the dataloader",
+        default=32,
+    )
+    parser.add_argument(
+        "--max_sentences",
+        type=int,
+        help="The amount of sentences to encode",
+        default=1000,
+    )
+    args = parser.parse_args()
+
     print("Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained("FacebookAI/xlm-roberta-base")
 
-    dataloaders, languages = get_bible_dataloaders_by_language(tokenizer)
+    dataloaders, languages = get_bible_dataloaders_by_language(args, tokenizer)
 
     for checkpoint, experiment in pairs:
         print("Loading model...")
         model = AutoModelForMaskedLM.from_pretrained(checkpoint)
 
         for language in languages:
+            print(f"=== {language} ===")
             encode(
                 dataloader=dataloaders[language],
                 model=model,
