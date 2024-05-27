@@ -8,7 +8,6 @@ could be extended to MLP layers
 import argparse
 import logging
 import os
-import random
 
 import numpy as np
 import torch
@@ -26,6 +25,7 @@ from transformers import (
     XLMRobertaTokenizer,
 )
 from transformers import glue_processors as processors
+from cross_lingual_subnets.utils import set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +37,6 @@ MODEL_CLASSES = {
         XLMRobertaTokenizer,
     ),
 }
-
-
-def set_seed(seed, n_gpu):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if n_gpu > 0:
-        torch.cuda.manual_seed_all(seed)
 
 
 # prune utils functions -> could be put in prune_utils.py
@@ -591,7 +583,7 @@ def main():
     )
 
     # Set seeds
-    set_seed(args.seed, args.n_gpu)
+    set_seed(args.seed)
 
     # NOTE: this could be a bit redundant, we could remove it
     if args.metric_name is None:

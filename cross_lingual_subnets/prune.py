@@ -37,11 +37,12 @@ if __name__ == "__main__":
     model = AutoModelForMaskedLM.from_pretrained(args.model_path)
 
     original_num_params = sum(p.numel() for p in model.parameters())
-
     pruned_model = prune_from_saved_mask(args, model)
-
     pruned_num_params = sum(p.numel() for p in model.parameters())
 
     print(f"Original parameters: {original_num_params}")
     print(f"Pruned parameters: {pruned_num_params}")
-    print(f"Eliminated parameters: {original_num_params - pruned_num_params}")
+    print(
+        "Eliminated parameters:"
+        f" {(original_num_params - pruned_num_params) / original_num_params * 100:.2f}%"
+    )
