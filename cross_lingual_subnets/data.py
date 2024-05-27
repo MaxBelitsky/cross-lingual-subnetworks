@@ -1,8 +1,8 @@
-import os
 import logging
+import os
 from itertools import chain
 
-from datasets import load_dataset, DatasetDict, concatenate_datasets
+from datasets import DatasetDict, concatenate_datasets, load_dataset
 
 from cross_lingual_subnets.constants import Datasets
 
@@ -18,7 +18,7 @@ def get_dataset(
     cache_dir=None,
     languages=None,
 ):
-    """ 
+    """
     Load and preprocess the dataset.
 
     Args:
@@ -46,9 +46,7 @@ def get_dataset(
         # Tokenize the dataset
         logger.info("Tokenizing the dataset")
         dataset = dataset.map(
-            lambda x: tokenizer(x["text"]),
-            batched=True,
-            remove_columns="text"
+            lambda x: tokenizer(x["text"]), batched=True, remove_columns="text"
         )
         # Chunk the dataset
         logger.info("Chunking the dataset")
@@ -77,12 +75,18 @@ def get_dataset(
         )
 
         # Combine all languages
-        train_split = concatenate_datasets([dataset[lang]['train'] for lang in dataset], axis=0)
+        train_split = concatenate_datasets(
+            [dataset[lang]["train"] for lang in dataset], axis=0
+        )
         train_split = train_split.shuffle(seed=seed)
-        dataset = DatasetDict({"train": train_split, "test": DatasetDict({lang: dataset[lang]['test'] for lang in dataset})})
+        dataset = DatasetDict(
+            {
+                "train": train_split,
+                "test": DatasetDict({lang: dataset[lang]["test"] for lang in dataset}),
+            }
+        )
 
     return dataset
-
 
 
 def get_dataset_head_masks(
@@ -94,9 +98,9 @@ def get_dataset_head_masks(
     cache_dir=None,
     languages=None,
     load_dataset_dict_path=None,
-    save_dataset_dict_path=None
+    save_dataset_dict_path=None,
 ):
-    """ 
+    """
     Load and preprocess the dataset.
 
     Args:
@@ -113,10 +117,10 @@ def get_dataset_head_masks(
     """
 
     if load_dataset_dict_path:
-      
-      dataset = DatasetDict()
-      dataset = dataset.load_from_disk(load_dataset_dict_path)
-      return dataset
+
+        dataset = DatasetDict()
+        dataset = dataset.load_from_disk(load_dataset_dict_path)
+        return dataset
 
     # Load the dataset
     logger.info(f"Loading dataset {dataset_name}")
@@ -131,9 +135,7 @@ def get_dataset_head_masks(
         # Tokenize the dataset
         logger.info("Tokenizing the dataset")
         dataset = dataset.map(
-            lambda x: tokenizer(x["text"]),
-            batched=True,
-            remove_columns="text"
+            lambda x: tokenizer(x["text"]), batched=True, remove_columns="text"
         )
         # Chunk the dataset
         logger.info("Chunking the dataset")
@@ -161,21 +163,16 @@ def get_dataset_head_masks(
             }
         )
 
-        # Combine all languages
-        '''
-        train_split = concatenate_datasets([dataset[lang]['train'] for lang in dataset], axis=0)
-        train_split = train_split.shuffle(seed=seed)
-        dataset = DatasetDict({"train": DatasetDict({lang: dataset[lang]['train'] for lang in dataset}), "test": DatasetDict({lang: dataset[lang]['test'] for lang in dataset})})
-        '''
         # save languages separately within datasets dir
 
         if save_dataset_dict_path:
-          
-          for lang in languages:
-              cur_path = f"{save_dataset_dict_path}/{lang}"
-              cur_dataset = DatasetDict({"train": dataset[lang]['train'], "test": dataset[lang]['test']})
-              cur_dataset.save_to_disk(cur_path)
-        
+
+            for lang in languages:
+                cur_path = f"{save_dataset_dict_path}/{lang}"
+                cur_dataset = DatasetDict(
+                    {"train": dataset[lang]["train"], "test": dataset[lang]["test"]}
+                )
+                cur_dataset.save_to_disk(cur_path)
 
     return dataset
 
@@ -183,7 +180,7 @@ def get_dataset_head_masks(
 def chunk_texts(examples, chunk_size=512):
     """
     Chunk the texts into chunks of size chunk_size to prepare for MLM training.
-    
+
     Args:
         examples (dict): The examples to chunk.
         chunk_size (int): The size of the chunks.
@@ -199,7 +196,7 @@ def chunk_texts(examples, chunk_size=512):
     total_length = (total_length // chunk_size) * chunk_size
     # Split by chunks of max_len
     result = {
-        k: [t[i : i + chunk_size] for i in range(0, total_length, chunk_size)]
+        k: [t[i : i + chunk_size] for i in range(0, total_length, chunk_size)]  # noqa
         for k, t in concatenated_examples.items()
     }
     # Create a new labels column

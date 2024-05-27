@@ -42,7 +42,8 @@ def create_wikipedia_subsets(
         save_dir (str): The directory to save the dataset.
         push_to_hub (bool): Whether to push the dataset to the hub.
         save_to_disk (bool): Whether to save the dataset to disk.
-        save_separate_lang_datasets (bool): Whether to save the dataset for each language separately.
+        save_separate_lang_datasets (bool): Whether to save the dataset for each
+        language separately.
         hf_repo_id (str): The repository id.
 
     Returns:
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     argparser.add_argument("--save_dir", type=str, default="data")
     argparser.add_argument("--hf_repo_id", type=str, required=False)
     argparser.add_argument("--seed", type=int, default=42)
-    
+
     args = argparser.parse_args()
 
     dataset = create_wikipedia_subsets(

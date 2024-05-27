@@ -1,11 +1,11 @@
+import argparse
+
+from transformers import AutoTokenizer
 
 from cross_lingual_subnets.data import get_dataset_head_masks
 
-from transformers import AutoTokenizer, AutoModelForMaskedLM
-import argparse
-
-# Load the tokenizerx
-tokenizer = AutoTokenizer.from_pretrained('FacebookAI/xlm-roberta-base')
+# Load the tokenizer
+tokenizer = AutoTokenizer.from_pretrained("FacebookAI/xlm-roberta-base")
 
 parser = argparse.ArgumentParser(description="Training sentence embedding models")
 
@@ -13,7 +13,10 @@ parser.add_argument(
     "--languages",
     type=str,
     nargs="*",
-    help="The languages to include in the dataset. If not provided, all languages are included."
+    help=(
+        "The languages to include in the dataset. If not provided, all languages are"
+        " included."
+    ),
 )
 
 args = parser.parse_args()
@@ -29,6 +32,5 @@ dataset = get_dataset_head_masks(
     cache_dir=None,
     languages=args.languages,
     load_dataset_dict_path=None,
-    save_dataset_dict_path='wiki_datasets/'
+    save_dataset_dict_path="wiki_datasets/",
 )
-
