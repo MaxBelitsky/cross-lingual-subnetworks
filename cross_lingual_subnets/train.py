@@ -4,8 +4,12 @@ import os
 
 import wandb
 from dotenv import load_dotenv
-from transformers import (AutoModelForMaskedLM, AutoTokenizer,
-                          DataCollatorForLanguageModeling, TrainingArguments)
+from transformers import (
+    AutoModelForMaskedLM,
+    AutoTokenizer,
+    DataCollatorForLanguageModeling,
+    TrainingArguments,
+)
 
 from cross_lingual_subnets.constants import Datasets
 from cross_lingual_subnets.create_subsets import WIKIPEDIA_DUMPS
@@ -98,7 +102,10 @@ if __name__ == "__main__":
         nargs="*",
         required=False,
         choices=WIKIPEDIA_DUMPS.keys(),
-        help="The languages to include in the dataset. If not provided, all languages are included.",
+        help=(
+            "The languages to include in the dataset. If not provided, all languages"
+            " are included."
+        ),
     )
     parser.add_argument(
         "--cache_dir",
@@ -139,8 +146,8 @@ if __name__ == "__main__":
         cache_dir=args.cache_dir,
         languages=args.languages,
     )
-    # TODO: this collator masks tokens randomly so we can get different values on two different evaluations
-    # maybe it is needed to mask the tokens once before training
+    # TODO: this collator masks tokens randomly so we can get different values on two
+    # different evaluations maybe it is needed to mask the tokens once before training
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer)
 
     # Set up training arguments and the trainer

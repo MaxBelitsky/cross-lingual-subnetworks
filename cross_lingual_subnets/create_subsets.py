@@ -42,7 +42,8 @@ def create_wikipedia_subsets(
         save_dir (str): The directory to save the dataset.
         push_to_hub (bool): Whether to push the dataset to the hub.
         save_to_disk (bool): Whether to save the dataset to disk.
-        save_separate_lang_datasets (bool): Whether to save the dataset for each language separately.
+        save_separate_lang_datasets (bool): Whether to save the dataset for each
+        language separately.
         hf_repo_id (str): The repository id.
 
     Returns:
