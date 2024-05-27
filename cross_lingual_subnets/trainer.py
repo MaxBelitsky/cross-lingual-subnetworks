@@ -1,7 +1,6 @@
-from typing import List, Optional, Dict, Union
-
 import math
 import time
+from typing import Dict, List, Optional, Union
 
 from torch.utils.data import Dataset
 from transformers import Trainer

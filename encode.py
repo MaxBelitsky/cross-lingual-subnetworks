@@ -4,14 +4,16 @@ import os
 from collections import defaultdict
 
 import torch
-from cross_lingual_subnets.constants import Experiments
 from torch.utils.data import DataLoader
 from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+from cross_lingual_subnets.constants import Experiments
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 def mean_pooling(hidden_state, attention_mask):
+
     input_mask_expanded = (
         attention_mask.unsqueeze(-1).expand(hidden_state.size()).float()
     )
