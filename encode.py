@@ -13,7 +13,6 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 def mean_pooling(hidden_state, attention_mask):
-
     input_mask_expanded = (
         attention_mask.unsqueeze(-1).expand(hidden_state.size()).float()
     )
@@ -37,6 +36,8 @@ def encode(
         # Note! First layer here is embedding layer
         with torch.no_grad():
             output = model(**batch, output_hidden_states=True)["hidden_states"]
+
+        # FIXME: get rid of the loop
         # Aggregate averages of sentences (hence mean) per layer
         for j in range(len(output)):
             if i == 0:
