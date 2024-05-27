@@ -7,8 +7,9 @@ https://github.com/gchrupala/correlating-neural-and-symbolic-representations-of-
 
 import torch
 from sklearn.linear_model import Ridge
+from sklearn.metrics import make_scorer, mean_squared_error, r2_score
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import mean_squared_error, r2_score, make_scorer
+
 from cross_lingual_subnets.utils import to_tensor
 
 

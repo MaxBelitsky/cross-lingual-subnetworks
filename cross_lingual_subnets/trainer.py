@@ -1,7 +1,6 @@
-from typing import List, Optional, Dict, Union
-
 import math
 import time
+from typing import Dict, List, Optional, Union
 
 from torch.utils.data import Dataset
 from transformers import Trainer
@@ -52,8 +51,8 @@ class CustomTrainer(Trainer):
         output = eval_loop(
             eval_dataloader,
             description="Evaluation",
-            # No point gathering the predictions if there are no metrics, otherwise we defer to
-            # self.args.prediction_loss_only
+            # No point gathering the predictions if there are no metrics, otherwise we
+            # defer to self.args.prediction_loss_only
             prediction_loss_only=True if self.compute_metrics is None else None,
             ignore_keys=ignore_keys,
             metric_key_prefix=metric_key_prefix,

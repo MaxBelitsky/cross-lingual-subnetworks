@@ -164,3 +164,9 @@ data/
 wandb/
 models/
 
+wiki_datasets/
+prune_output/
+
+*.job
+new_prune_output/
+old_prune_output/

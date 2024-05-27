@@ -1,7 +1,5 @@
-import math
-import torch
 import numpy as np
-import torch.nn.functional as F
+import torch
 
 
 def set_seed(seed):
@@ -19,7 +17,7 @@ def set_seed(seed):
     try:
         if torch.backends.mps.is_available():
             torch.mps.manual_seed(seed)
-    except:
+    except Exception:
         pass
 
 
@@ -35,7 +33,7 @@ def set_device():
     try:
         if torch.backends.mps.is_available():
             device = torch.device("mps")
-    except:
+    except Exception:
         device = torch.device("cpu")
     return device
 
