@@ -4,12 +4,8 @@ import os
 
 import wandb
 from dotenv import load_dotenv
-from transformers import (
-    AutoModelForMaskedLM,
-    AutoTokenizer,
-    DataCollatorForLanguageModeling,
-    TrainingArguments,
-)
+from transformers import (AutoModelForMaskedLM, AutoTokenizer,
+                          DataCollatorForLanguageModeling, TrainingArguments)
 
 from cross_lingual_subnets.constants import Datasets
 from cross_lingual_subnets.create_subsets import WIKIPEDIA_DUMPS

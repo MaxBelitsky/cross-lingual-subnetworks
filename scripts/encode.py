@@ -25,7 +25,7 @@ def encode(
     dataloader: DataLoader,
     model,
     tokenizer,
-    language="en",
+    language: str,
     experiment_name=Experiments.XLMR_BASE,
 ):
     # Save hidden outputs per layer
@@ -51,8 +51,6 @@ def encode(
     if not os.path.exists(f"data/encodings/{experiment_name}/"):
         os.makedirs(f"data/encodings/{experiment_name}/")
 
-    print(hids.keys())
-    print(hids[0].shape)
     torch.save(hids, exp_destination)
 
 
@@ -61,8 +59,10 @@ def collate_batch(batch, tokenizer):
     return encoded_input
 
 
-def get_bible_dataloaders_by_language(args, tokenizer) -> tuple[dict, list]:
-    with open("data/text/bible_parallel_corpus.json", "r", encoding="ISO-8859-1") as f:
+def get_bible_dataloaders_by_language(
+    args, tokenizer, bible_path: str = "data/text/bible_parallel_corpus.json"
+) -> tuple[dict, list]:
+    with open(bible_path, "r", encoding="ISO-8859-1") as f:
         texts = json.load(f)
 
     texts_by_language = defaultdict(list)
@@ -71,7 +71,7 @@ def get_bible_dataloaders_by_language(args, tokenizer) -> tuple[dict, list]:
         for lang in languages:
             texts_by_language[lang].append(text[lang])
 
-    # Define a custom collate function which takes in a vocab
+    # Define a custom collate function which takes in a tokenzier
     collate_fn = lambda batch: collate_batch(batch, tokenizer=tokenizer)  # noqa
 
     data_loader_kwargs = {

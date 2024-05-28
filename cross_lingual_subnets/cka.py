@@ -1,3 +1,7 @@
+"""
+Code adapted from https://github.com/Kennethborup/centered_kernel_alignment/blob/main/CKA.ipynb  # noqa
+"""
+
 import numpy as np
 
 
@@ -11,25 +15,6 @@ def gram_linear(x):
       A num_examples x num_examples Gram matrix of examples.
     """
     return np.dot(x, x.T)
-
-
-# def gram_rbf(x, threshold=1.0):
-#     """Compute Gram (kernel) matrix for an RBF kernel.
-
-#     Args:
-#       x: A num_examples x num_features matrix of features.
-#       threshold: Fraction of median Euclidean distance to use as RBF kernel
-#         bandwidth. (This is the heuristic we use in the paper. There are other
-#         possible ways to set the bandwidth; we didn't try them.)
-
-#     Returns:
-#       A num_examples x num_examples Gram matrix of examples.
-#     """
-#     dot_products = x.dot(x.T)
-#     sq_norms = np.diag(dot_products)
-#     sq_distances = -2 * dot_products + sq_norms[:, None] + sq_norms[None, :]
-#     sq_median_distance = np.median(sq_distances)
-#     return np.exp(-sq_distances / (2 * threshold**2 * sq_median_distance))
 
 
 def center_gram(gram, unbiased=False):

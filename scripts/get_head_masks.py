@@ -25,6 +25,7 @@ from transformers import (
     XLMRobertaTokenizer,
 )
 from transformers import glue_processors as processors
+
 from cross_lingual_subnets.utils import set_seed
 
 logger = logging.getLogger(__name__)
@@ -112,12 +113,6 @@ def compute_heads_importance(
     for step, batch in enumerate(
         tqdm(eval_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
     ):
-
-        """
-        batch = tuple(t.to(args.device) for t in batch)
-        input_ids, input_mask, segment_ids, label_ids = batch
-        """
-
         input_ids, input_mask, label_ids = (
             batch["input_ids"],
             batch["attention_mask"],
@@ -126,14 +121,6 @@ def compute_heads_importance(
         input_ids = input_ids.to(args.device)
         input_mask = input_mask.to(args.device)
         label_ids = label_ids.to(args.device)
-
-        """
-        tokenizer = AutoTokenizer.from_pretrained('FacebookAI/xlm-roberta-base')
-
-        print(tokenizer.decode(input_ids[0]))
-        print(input_mask[0])
-        print(tokenizer.decode(label_ids[0]))
-        """
 
         # Do a forward pass (not with torch.no_grad() since we need gradients for
         # importance score - see below)
@@ -163,15 +150,6 @@ def compute_heads_importance(
             head_importance += head_mask.grad.abs().detach()
         # Also store our logits/labels if we want to compute metrics afterwards
 
-        """
-        if preds is None:
-            preds = logits.detach().cpu().numpy()
-            labels = label_ids.detach().cpu().numpy()
-        else:
-            preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
-            labels = np.append(labels, label_ids.detach().cpu().numpy(), axis=0)
-        """
-
         tot_tokens += input_mask.float().detach().sum().data
 
     # TODO: separate the following code into smaller functions
@@ -185,6 +163,7 @@ def compute_heads_importance(
         )
         logger.info("Attention entropies")
         print_2d_tensor(attn_entropy)
+
     if compute_importance:
         # Normalize
         head_importance /= tot_tokens
