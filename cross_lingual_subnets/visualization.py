@@ -163,7 +163,7 @@ def cka_cross_layer_all_languages(
         df = df.sort_index(ascending=False)
 
         ax = sns.heatmap(df, ax=axs[i], cbar=i == 0, cbar_ax=None if i else cbar_ax)
-        ax.set(title=lang)
+        ax.set(title=lang, xticks=df.index, yticks=df.columns)
 
     # Delete the last (if unused) subplot
     if len(languages) % 2 != 0:
@@ -172,6 +172,7 @@ def cka_cross_layer_all_languages(
     fig.tight_layout(rect=[0, 0, 0.9, 1])
 
     save_img(savename)
+    return df
 
 
 def plot_per_layer_lineplot(
