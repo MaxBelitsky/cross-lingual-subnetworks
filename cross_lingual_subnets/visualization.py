@@ -130,14 +130,17 @@ def cka_cross_layer_all_languages(
     savename: str = None,
     figsize: tuple = (7, 13),
 ):
-    """_summary_
+    """Plot heatmap of cross-layer CKA similarities of representations, all languages.
 
-    :param full_sub: _description_
-    :param xlabel: _description_
-    :param ylabel: _description_
-    :param exp_name1:
-    :param exp_name2: _description_
-    :param savename: how to save the image, defaults to None
+    :param full_sub: dictionary of the form
+    {
+        language: model_type: representations of shape (num_examples x hid_dim)
+    }
+    :param xlabel: Name of the first encoder
+    :param ylabel: Name of the second encoder
+    :param exp_name1: model type of the first representation to compare
+    :param exp_name2: model type of the second representation to compare
+    :param savename: where to save the image, defaults to None
     :param figsize: size of the figure, defaults to (7, 13)
     """
     languages = full_sub.keys()
@@ -199,8 +202,8 @@ def plot_per_layer_lineplot(
 
 def cka_layer_by_layer(
     full_sub: dict,
-    exp1: str,
-    exp2: str,
+    exp_name1: str,
+    exp_name2: str,
     source: str | None = None,
     savename: str = None,
     figsize: tuple = FIGSIZE,
@@ -211,20 +214,43 @@ def cka_layer_by_layer(
     marker: str = "o",
     markersize: int = 8,
 ) -> pd.DataFrame:
+    """Plot lineplot of CKA similarities.
+
+    If source is None, the similarities are plotted for the same languages (then it
+    would make sense to compare cross-models). If the source is a specific language,
+    then we would be comparing cross languages (exp_name1 = exp_name2).
+
+    :param full_sub: dictionary of the form
+    {
+        language: model_type: representations of shape (num_examples x hid_dim)
+    }
+    :param exp_name1: model type of the first representation to compare
+    :param exp_name2: model type of the second representation to compare
+    :param source: what source language to use, defaults to None
+    :param savename: where to save the image, defaults to None
+    :param figsize: size of the figure, defaults to (7, 13)
+    :param title: whether to add a title to plot, defaults to None
+    :param legend: whether to use a legend, defaults to True
+    :param linewidth: what linewidth to use, defaults to 3
+    :param dashes: whether to use dashes, defaults to False
+    :param marker: what marker to use, defaults to "o"
+    :param markersize: what marker size to use, defaults to 8
+    :return: computed dataframe of cka similarities
+    """
     cka_results = dict()
     plt.figure(figsize=figsize)
     for lang, vals in full_sub.items():
         # Compute similarity for some source language
         # or for the same language but between different models
-        repr1 = vals[exp1] if source is None else full_sub[source[exp1]]
-        repr2 = vals[exp2]
+        repr1 = vals[exp_name1] if source is None else full_sub[source[exp_name1]]
+        repr2 = vals[exp_name2]
 
         res = []
         for layer_id in range(len(repr1)):
             layer_repr1 = repr1[layer_id].detach()
             layer_repr2 = repr2[layer_id].detach()
             res.append(cka(layer_repr1, layer_repr2))
-        cka_results[f"{lang}_{exp1}-{lang}_{exp2}"] = res
+        cka_results[f"{lang}_{exp_name1}-{lang}_{exp_name2}"] = res
 
     df = pd.DataFrame(cka_results)
     plot_per_layer_lineplot(
@@ -241,6 +267,12 @@ def cka_layer_by_layer(
 
 
 def cka_diff_barplots(df, savename: str = None, figsize: tuple = FIGSIZE):
+    """Plot differences over layers as barplots for representation pairs.
+
+    :param df: results df
+    :param savename: how to save image, defaults to None
+    :param figsize: figure size, defaults to FIGSIZE
+    """
     lang_pairs = df.index
     fig, axs = plt.subplots(len(lang_pairs), 1, figsize=figsize)
     ymin = df.min().min()
