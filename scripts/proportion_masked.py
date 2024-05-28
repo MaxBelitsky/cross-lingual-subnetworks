@@ -1,19 +1,17 @@
 import numpy as np
+import os
+
+BASE_PRUNE_PATH = "../outputs/old_prune_output/"
+LANGUAGES = ["ar", "de", "en", "es", "hi", "ru", "ur", "zh"]
 
 
 def compute_proportion_masked():
     # first dim is layer
-
     mask = [None] * 8
-
-    mask[0] = np.load("../../old_prune_output/ar_seed_42_head_mask.npy")
-    mask[1] = np.load("../../old_prune_output/de_seed_42_head_mask.npy")
-    mask[2] = np.load("../../old_prune_output/en_seed_42_head_mask.npy")
-    mask[3] = np.load("../../old_prune_output/es_seed_42_head_mask.npy")
-    mask[4] = np.load("../../old_prune_output/hi_seed_42_head_mask.npy")
-    mask[5] = np.load("../../old_prune_output/ru_seed_42_head_mask.npy")
-    mask[6] = np.load("../../old_prune_output/ur_seed_42_head_mask.npy")
-    mask[7] = np.load("../../old_prune_output/zh_seed_42_head_mask.npy")
+    for i, lang in enumerate(LANGUAGES):
+        mask[i] = np.load(
+            os.path.join(BASE_PRUNE_PATH, f"{lang}_seed_42_head_mask.npy")
+        )
 
     masked_by_layer = np.zeros(12)
 

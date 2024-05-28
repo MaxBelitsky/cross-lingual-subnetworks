@@ -1,4 +1,3 @@
-from cross_lingual_subnets.prune import prune_from_saved_mask
 import numpy as np
 import torch
 
