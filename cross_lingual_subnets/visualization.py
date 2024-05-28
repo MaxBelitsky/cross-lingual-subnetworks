@@ -1,9 +1,18 @@
+import os
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from cross_lingual_subnets.cca_core import get_cca_similarity
 from cross_lingual_subnets.cka import cka
+
+
+BASE_OUTPUT_PATH = "output/images/"
+
+
+def save_img(savename: str) -> None:
+    if savename is not None:
+        plt.savefig(os.path.join(BASE_OUTPUT_PATH, savename))
 
 
 def cka_cross_layer(
@@ -26,7 +35,7 @@ def cka_cross_layer(
     if title is not None:
         ax.set(title=title)
     if savename is not None:
-        plt.savefig(f"images/{savename}")
+        plt.savefig(os.path.join(BASE_OUTPUT_PATH, savename))
 
 
 def cka_layer_by_layer(full_sub: dict, savename: str = None, title: str = None):
@@ -48,8 +57,8 @@ def cka_layer_by_layer(full_sub: dict, savename: str = None, title: str = None):
     plt.title(title)
     plt.xlabel("Layers")
     plt.ylabel("CKA Similarity")
-    if savename is not None:
-        plt.savefig(f"images/{savename}")
+
+    save_img(savename)
 
 
 def cka_layer_by_layer_langs(
@@ -81,8 +90,8 @@ def cka_layer_by_layer_langs(
     plt.title(title)
     plt.xlabel("Layers")
     plt.ylabel("CKA Similarity")
-    if savename is not None:
-        plt.savefig(f"images/{savename}")
+
+    save_img(savename)
 
     return df
 
@@ -123,8 +132,7 @@ def cka_cross_layer_all_languages(
 
     fig.tight_layout(rect=[0, 0, 0.9, 1])
 
-    if savename is not None:
-        plt.savefig(f"images/{savename}")
+    save_img(savename)
 
 
 def cka_diff_barplots(df, savename: str = None):
@@ -137,31 +145,5 @@ def cka_diff_barplots(df, savename: str = None):
         sns.barplot(data=df.loc[lang_pair], ax=axs[i], color=cols[i])
         axs[i].set_ylim([ymin, ymax])
         axs[i].grid()
-    if savename is not None:
-        plt.savefig(f"images/{savename}")
 
-
-def svcca_cross_layer(
-    repr1, repr2, xlabel: str = None, ylabel: str = None, savename: str = None
-):
-    cka_results = dict()
-    for i in range(len(repr1)):
-        # Input must be number of neurons (encoding dim?) by datapoints
-        layer_reprs1 = repr1[i].detach().T
-        res = []
-        for j in range(len(repr2)):
-            layer_reprs2 = repr2[j].detach().T
-            score = get_cca_similarity(layer_reprs1, layer_reprs2, verbose=False)[
-                "mean"
-            ][0]
-            res.append(score)
-        cka_results[i] = res
-
-    df = pd.DataFrame(cka_results)
-    df = df.sort_index(ascending=False)
-
-    ax = sns.heatmap(df)
-    if xlabel is not None and ylabel is not None:
-        ax.set(xlabel=f"{xlabel} layer", ylabel=f"{ylabel} layer")
-    if savename is not None:
-        plt.savefig(f"images/{savename}")
+    save_img(savename)
