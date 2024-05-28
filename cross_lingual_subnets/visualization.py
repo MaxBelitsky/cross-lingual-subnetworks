@@ -6,7 +6,6 @@ import seaborn as sns
 
 from cross_lingual_subnets.cka import cka
 
-
 BASE_OUTPUT_PATH = "output/images/"
 
 

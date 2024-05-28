@@ -76,6 +76,7 @@ def rsa(A, B):
     return pearson(triu(M_A), triu(M_B), dim=0)
 
 
+# TODO: remove after RSA has been fully implemented
 # def rsa(enc1: torch.tensor, enc2: torch.tensor) -> float:
 #     D_rep = 1 - cosine_matrix(data_enc1["test"], data_enc1["test"])
 #     D_rep2 = 1 - cosine_matrix(data_enc2["test"], data_enc2["test"])

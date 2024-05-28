@@ -2,10 +2,8 @@ import numpy as np
 import torch
 
 
-def set_seed(seed):
-    """
-    Function for setting the seed for reproducibility.
-    """
+def set_seed(seed: int):
+    """Function for setting the seed for reproducibility."""
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
@@ -22,9 +20,7 @@ def set_seed(seed):
 
 
 def set_device():
-    """
-    Function for setting the device.
-    """
+    """Function for setting the device."""
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
@@ -39,6 +35,7 @@ def set_device():
 
 
 def to_tensor(x) -> torch.tensor:
+    """Function to convert an array to torch tensor."""
     if not isinstance(x, torch.tensor):
         x = torch.tensor(x)
 

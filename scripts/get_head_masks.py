@@ -16,15 +16,12 @@ from torch.utils.data import DataLoader, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from torcheval.metrics.text import Perplexity
 from tqdm import tqdm
-from transformers import (
-    AutoModelForMaskedLM,
-    AutoTokenizer,
-    DataCollatorForLanguageModeling,
-    XLMRobertaConfig,
-    XLMRobertaForSequenceClassification,
-    XLMRobertaTokenizer,
-)
+from transformers import (AutoModelForMaskedLM, AutoTokenizer,
+                          DataCollatorForLanguageModeling, XLMRobertaConfig,
+                          XLMRobertaForSequenceClassification,
+                          XLMRobertaTokenizer)
 from transformers import glue_processors as processors
+
 from cross_lingual_subnets.utils import set_seed
 
 logger = logging.getLogger(__name__)
