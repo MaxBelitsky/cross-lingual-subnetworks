@@ -2,7 +2,7 @@
 
 # get each of the pruned subnetworks
 
-import copy
+
 import logging
 import os
 
@@ -11,10 +11,15 @@ import torch
 from datasets import DatasetDict, load_dataset
 from torch.utils.data import DataLoader, SequentialSampler
 from tqdm import tqdm
-from transformers import (AutoModelForMaskedLM, AutoTokenizer,
-                          DataCollatorForLanguageModeling)
+from transformers import (
+    AutoModelForMaskedLM,
+    AutoTokenizer,
+    DataCollatorForLanguageModeling,
+)
 
 from cross_lingual_subnets.data import chunk_texts
+from cross_lingual_subnets.prune import prune_from_saved_mask
+
 
 logger = logging.getLogger(__name__)
 
@@ -115,24 +120,6 @@ def get_dataset_head_masks(
     return dataset
 
 
-def prune_from_saved_mask(model, head_mask):
-    """pasting this code and editing it slightly"""
-    model = copy.deepcopy(model)
-
-    heads_to_prune = {}
-    for layer in range(len(head_mask)):
-        heads_to_mask = [h[0] for h in (1 - head_mask[layer].long()).nonzero().tolist()]
-        heads_to_prune[layer] = heads_to_mask
-
-    assert (
-        sum(len(h) for h in heads_to_prune.values())
-        == (1 - head_mask.long()).sum().item()
-    )
-    model.prune_heads(heads_to_prune)
-
-    return model
-
-
 def get_perplexity(model, eval_dataloader):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -190,7 +177,7 @@ if __name__ == "__main__":
     for l_model in languages:
         cur_mask_path = os.path.join(base_path, f"{l_model}_seed_42_head_mask.npy")
         cur_mask = torch.tensor(np.load(cur_mask_path)).to("cuda")
-        cur_model = prune_from_saved_mask(model, cur_mask)
+        cur_model = prune_from_saved_mask(model=model, head_mask=cur_mask)
         for l_test in languages:
             cur_dataset = datasets_by_l[l_test]
             eval_sampler = SequentialSampler(cur_dataset)

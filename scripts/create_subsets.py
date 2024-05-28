@@ -84,7 +84,6 @@ def create_wikipedia_subsets(
 
 
 if __name__ == "__main__":
-
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--num_proc", type=int, default=os.cpu_count())
     argparser.add_argument("--n_examples_per_lang", type=int, default=80_000)

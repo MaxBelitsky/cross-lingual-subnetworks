@@ -16,7 +16,7 @@ def save_img(savename: str) -> None:
 
 def cka_cross_layer(
     repr1, repr2, xlabel: str, ylabel: str, title: str = None, savename: str = None
-):
+) -> None:
     cka_results = dict()
     for i in range(len(repr1)):
         layer_reprs1 = repr1[i].detach()
@@ -37,7 +37,7 @@ def cka_cross_layer(
         plt.savefig(os.path.join(BASE_OUTPUT_PATH, savename))
 
 
-def cka_layer_by_layer(full_sub: dict, savename: str = None, title: str = None):
+def cka_layer_by_layer(full_sub: dict, savename: str = None, title: str = None) -> None:
     cka_results = dict()
     for lang, vals in full_sub.items():
         full = vals["full"]
@@ -67,7 +67,7 @@ def cka_layer_by_layer_langs(
     source: str = "en",
     savename: str = None,
     title: str = None,
-):
+) -> pd.DataFrame:
     cka_results = dict()
     source_vals = full_sub[source][exp_name1]
     for lang, vals in full_sub.items():
