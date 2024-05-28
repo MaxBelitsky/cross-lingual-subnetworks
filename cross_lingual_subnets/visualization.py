@@ -6,10 +6,14 @@ import seaborn as sns
 
 from cross_lingual_subnets.cka import cka
 
-BASE_OUTPUT_PATH = "output/images/"
+BASE_OUTPUT_PATH = "outputs/images/"
+FIGSIZE = (10, 7)
 
 
 def save_img(savename: str) -> None:
+    if not os.path.exists(BASE_OUTPUT_PATH):
+        os.makedirs(BASE_OUTPUT_PATH)
+
     if savename is not None:
         plt.savefig(os.path.join(BASE_OUTPUT_PATH, savename))
 
@@ -30,27 +34,47 @@ def cka_cross_layer(
     df = df.sort_index(ascending=False)
 
     ax = sns.heatmap(df)
-    ax.set(xlabel=f"{xlabel} Layer", ylabel=f"{ylabel} Layer")
+    ax.set(xlabel=f"{xlabel} layer", ylabel=f"{ylabel} layer")
     if title is not None:
         ax.set(title=title)
     if savename is not None:
         plt.savefig(os.path.join(BASE_OUTPUT_PATH, savename))
 
 
-def cka_layer_by_layer(full_sub: dict, savename: str = None, title: str = None) -> None:
+def cka_layer_by_layer(
+    full_sub: dict,
+    exp1: str,
+    exp2: str,
+    savename: str = None,
+    title: str = None,
+    legend: bool = True,
+    figsize: tuple = FIGSIZE,
+    linewidth: int = 3,
+    dashes: bool = False,
+    marker: str = "o",
+    markersize: int = 8,
+) -> None:
     cka_results = dict()
+    plt.figure(figsize=figsize)
     for lang, vals in full_sub.items():
-        full = vals["full"]
-        sub = vals["sub"]
+        full = vals[exp1]
+        sub = vals[exp2]
 
         res = []
         for layer_id in range(len(full)):
             res.append(cka(full[layer_id].detach(), sub[layer_id].detach()))
-        cka_results[f"{lang}_full-{lang}_sub"] = res
+        cka_results[f"{lang}_{exp1}-{lang}_{exp2}"] = res
 
     df = pd.DataFrame(cka_results)
 
-    sns.lineplot(data=df, markers=True)
+    sns.lineplot(
+        data=df,
+        marker=marker,
+        legend=legend,
+        linewidth=linewidth,
+        dashes=dashes,
+        markersize=markersize,
+    )
     plt.grid()
     plt.xticks(range(12))
     plt.title(title)
@@ -67,7 +91,9 @@ def cka_layer_by_layer_langs(
     source: str = "en",
     savename: str = None,
     title: str = None,
+    figsize: tuple = FIGSIZE,
 ) -> pd.DataFrame:
+    plt.figure(figsize)
     cka_results = dict()
     source_vals = full_sub[source][exp_name1]
     for lang, vals in full_sub.items():
@@ -102,9 +128,10 @@ def cka_cross_layer_all_languages(
     exp_name1: str,
     exp_name2: str,
     savename: str = None,
+    figsize: tuple = (7, 13),
 ):
     languages = full_sub.keys()
-    fig, axs = plt.subplots(round(len(languages) / 2), 2, figsize=(7, 13))
+    fig, axs = plt.subplots(round(len(languages) / 2), 2, figsize=figsize)
     axs = axs.reshape(-1)
     cbar_ax = fig.add_axes([0.91, 0.3, 0.03, 0.4])
 
@@ -134,9 +161,9 @@ def cka_cross_layer_all_languages(
     save_img(savename)
 
 
-def cka_diff_barplots(df, savename: str = None):
+def cka_diff_barplots(df, savename: str = None, figsize: tuple = FIGSIZE):
     lang_pairs = df.index
-    fig, axs = plt.subplots(len(lang_pairs), 1, figsize=(7, 10.5))
+    fig, axs = plt.subplots(len(lang_pairs), 1, figsize=figsize)
     ymin = df.min().min()
     ymax = df.max().max()
     cols = sns.color_palette()
