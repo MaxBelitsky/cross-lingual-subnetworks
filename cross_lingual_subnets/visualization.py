@@ -34,6 +34,20 @@ def load_encodings(
     model_types: list = MODEL_TYPES,
     model_type_to_experiment: dict = MODEL_TYPE_TO_EXPERIMENT,
 ) -> dict:
+    """Loads sentence representations.
+
+    :param path_to_encodings: base path to the directory where all the encodings are
+    stored e.g. encodings/
+    :param max_length: limit to cut representations to save computation time, defaults
+    to None
+    :param languages: languages to load encodings for, defaults to ["en", "es", "ru",
+     "ar", "de", "hi", "zh"]
+    :param model_types: model types to load encodings for, defaults to ["base",
+     "finetuned", "sub"]
+    :param model_type_to_experiment: dictionary for each language which sub-directory
+     was used, defaults to MODEL_TYPE_TO_EXPERIMENT
+    :return: loaded dictionary
+    """
     full_sub = {}
     for lang in languages:
         full_sub[lang] = {}
@@ -59,6 +73,10 @@ def load_encodings(
 
 
 def save_img(savename: str) -> None:
+    """Save image using savename.
+
+    :param savename: name of the image.
+    """
     if not os.path.exists(BASE_OUTPUT_PATH):
         os.makedirs(BASE_OUTPUT_PATH)
 
@@ -67,8 +85,22 @@ def save_img(savename: str) -> None:
 
 
 def cka_cross_layer(
-    repr1, repr2, xlabel: str, ylabel: str, title: str = None, savename: str = None
+    repr1: torch.Tensor,
+    repr2: torch.Tensor,
+    xlabel: str,
+    ylabel: str,
+    title: str = None,
+    savename: str = None,
 ) -> None:
+    """Plot heatmap of cross-layer CKA similarities of representations.
+
+    :param repr1: (num_inputs x hid_dim) size tensor of representations
+    :param repr2: (num_inputs x hid_dim) size tensor of representations
+    :param xlabel: Name of the first encoder
+    :param ylabel: Name of the second encoder
+    :param title: name the plot, defaults to None
+    :param savename: where to save the image, defaults to None
+    """
     cka_results = dict()
     for i in range(len(repr1)):
         layer_reprs1 = repr1[i].detach()
@@ -98,6 +130,16 @@ def cka_cross_layer_all_languages(
     savename: str = None,
     figsize: tuple = (7, 13),
 ):
+    """_summary_
+
+    :param full_sub: _description_
+    :param xlabel: _description_
+    :param ylabel: _description_
+    :param exp_name1:
+    :param exp_name2: _description_
+    :param savename: how to save the image, defaults to None
+    :param figsize: size of the figure, defaults to (7, 13)
+    """
     languages = full_sub.keys()
     fig, axs = plt.subplots(round(len(languages) / 2), 2, figsize=figsize)
     axs = axs.reshape(-1)
@@ -196,48 +238,6 @@ def cka_layer_by_layer(
     )
     save_img(savename)
     return df
-
-
-# def cka_layer_by_layer_langs(
-#     full_sub: dict,
-#     exp_name1: str,
-#     exp_name2: str,
-#     source: str = "en",
-#     savename: str = None,
-#     title: str = None,
-#     legend: bool = True,
-#     figsize: tuple = FIGSIZE,
-#     linewidth: int = 3,
-#     dashes: bool = False,
-#     marker: str = "o",
-#     markersize: int = 8,
-# ) -> pd.DataFrame:
-#     plt.figure(figsize)
-#     cka_results = dict()
-#     source_vals = full_sub[source][exp_name1]
-#     for lang, vals in full_sub.items():
-#         if lang == source:
-#             continue
-
-#         ref_vals = vals[exp_name2]
-#         res = []
-#         for layer_id in range(len(ref_vals)):
-#             layer_source_vals = source_vals[layer_id].detach()
-#             layer_ref_vals = ref_vals[layer_id].detach()
-#             res.append(cka(layer_source_vals, layer_ref_vals))
-#         cka_results[f"{source}_{exp_name1}-{lang}_{exp_name2}"] = res
-
-#     df = pd.DataFrame(cka_results)
-#     plot_per_layer_lineplot(
-#         res_df=df,
-#         title=title,
-#         legend=legend,
-#         linewidth=linewidth,
-#         dashes=dashes,
-#         marker=marker,
-#         markersize=markersize,
-#     )
-#     return df
 
 
 def cka_diff_barplots(df, savename: str = None, figsize: tuple = FIGSIZE):
