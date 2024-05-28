@@ -3,11 +3,59 @@ import os
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import torch
 
 from cross_lingual_subnets.cka import cka
 
+
 BASE_OUTPUT_PATH = "outputs/images/"
 FIGSIZE = (10, 7)
+LANGUAGES = ["en", "es", "ru", "ar", "de", "hi", "zh"]
+MODEL_TYPES = ["base", "finetuned", "sub"]
+MODEL_TYPE_TO_EXPERIMENT = {
+    "base": "Experiments.XLMR_BASE",
+    "finetuned": "Experiments.XLMR_MLM_FINETUNED",
+    "sub": {
+        "en": "Experiments.EN_SUB_MLM_FINETUNED",
+        "es": "Experiments.ES_SUB_MLM_FINETUNED",
+        "de": "Experiments.DE_SUB_MLM_FINETUNED",
+        "ru": "Experiments.RU_SUB_MLM_FINETUNED",
+        "zh": "Experiments.ZH_SUB_MLM_FINETUNED",
+        "hi": "Experiments.HI_SUB_MLM_FINETUNED",
+        "ar": "Experiments.AR_SUB_MLM_FINETUNED",
+    },
+}
+
+
+def load_encodings(
+    path_to_encodings: str,
+    max_length: int = None,
+    languages: list = LANGUAGES,
+    model_types: list = MODEL_TYPES,
+    model_type_to_experiment: dict = MODEL_TYPE_TO_EXPERIMENT,
+) -> dict:
+    full_sub = {}
+    for lang in languages:
+        full_sub[lang] = {}
+        for model_type in model_types:
+            experiment = (
+                model_type_to_experiment[model_type][lang]
+                if model_type == "sub"
+                else model_type_to_experiment[model_type]
+            )
+            exp_lang = os.path.join(experiment, f"{lang}.pt")
+            full_path = os.path.join(path_to_encodings, exp_lang)
+
+            encoding_dict = torch.load(full_path)
+            if max_length is not None and max_length > 0:
+                new_encoding_dict = {}
+                for layer, values in encoding_dict.items():
+                    new_encoding_dict[layer] = values[:max_length]
+                encoding_dict = new_encoding_dict
+
+            full_sub[lang][model_type] = encoding_dict
+
+    return full_sub
 
 
 def save_img(savename: str) -> None:
@@ -41,86 +89,6 @@ def cka_cross_layer(
         plt.savefig(os.path.join(BASE_OUTPUT_PATH, savename))
 
 
-def cka_layer_by_layer(
-    full_sub: dict,
-    exp1: str,
-    exp2: str,
-    savename: str = None,
-    title: str = None,
-    legend: bool = True,
-    figsize: tuple = FIGSIZE,
-    linewidth: int = 3,
-    dashes: bool = False,
-    marker: str = "o",
-    markersize: int = 8,
-) -> None:
-    cka_results = dict()
-    plt.figure(figsize=figsize)
-    for lang, vals in full_sub.items():
-        full = vals[exp1]
-        sub = vals[exp2]
-
-        res = []
-        for layer_id in range(len(full)):
-            res.append(cka(full[layer_id].detach(), sub[layer_id].detach()))
-        cka_results[f"{lang}_{exp1}-{lang}_{exp2}"] = res
-
-    df = pd.DataFrame(cka_results)
-
-    sns.lineplot(
-        data=df,
-        marker=marker,
-        legend=legend,
-        linewidth=linewidth,
-        dashes=dashes,
-        markersize=markersize,
-    )
-    plt.grid()
-    plt.xticks(range(12))
-    plt.title(title)
-    plt.xlabel("Layers")
-    plt.ylabel("CKA Similarity")
-
-    save_img(savename)
-
-
-def cka_layer_by_layer_langs(
-    full_sub: dict,
-    exp_name1: str,
-    exp_name2: str,
-    source: str = "en",
-    savename: str = None,
-    title: str = None,
-    figsize: tuple = FIGSIZE,
-) -> pd.DataFrame:
-    plt.figure(figsize)
-    cka_results = dict()
-    source_vals = full_sub[source][exp_name1]
-    for lang, vals in full_sub.items():
-        if lang == source:
-            continue
-
-        ref_vals = vals[exp_name2]
-
-        res = []
-        for layer_id in range(len(ref_vals)):
-            res.append(cka(source_vals[layer_id].detach(), ref_vals[layer_id].detach()))
-        cka_results[f"{source}_{exp_name1}-{lang}_{exp_name2}"] = res
-
-    df = pd.DataFrame(cka_results)
-
-    sns.lineplot(data=df, markers=True)
-    plt.grid()
-    plt.xticks(range(12))
-    plt.title(title)
-    plt.xlabel("Layers")
-    plt.ylabel("CKA Similarity")
-
-    save_img(savename)
-
-    return df
-
-
 def cka_cross_layer_all_languages(
     full_sub: dict,
     xlabel: str,
@@ -152,13 +120,124 @@ def cka_cross_layer_all_languages(
         ax = sns.heatmap(df, ax=axs[i], cbar=i == 0, cbar_ax=None if i else cbar_ax)
         ax.set(title=lang)
 
-    # Delete the last unused subplot
+    # Delete the last (if unused) subplot
     if len(languages) % 2 != 0:
         fig.delaxes(axs[-1])
 
     fig.tight_layout(rect=[0, 0, 0.9, 1])
 
     save_img(savename)
+
+
+def plot_per_layer_lineplot(
+    res_df: pd.DataFrame,
+    title: str = None,
+    legend: bool = True,
+    figsize: tuple = FIGSIZE,
+    linewidth: int = 3,
+    dashes: bool = False,
+    marker: str = "o",
+    markersize: int = 8,
+) -> None:
+    sns.lineplot(
+        data=res_df,
+        marker=marker,
+        legend=legend,
+        linewidth=linewidth,
+        dashes=dashes,
+        markersize=markersize,
+    )
+    plt.grid()
+    num_layers = len(res_df[res_df.columns[0]])
+    plt.xticks(range(num_layers))
+    plt.title(title)
+    plt.xlabel("Layers")
+    plt.ylabel("CKA Similarity")
+
+
+def cka_layer_by_layer(
+    full_sub: dict,
+    exp1: str,
+    exp2: str,
+    source: str | None = None,
+    savename: str = None,
+    figsize: tuple = FIGSIZE,
+    title: str = None,
+    legend: bool = True,
+    linewidth: int = 3,
+    dashes: bool = False,
+    marker: str = "o",
+    markersize: int = 8,
+) -> pd.DataFrame:
+    cka_results = dict()
+    plt.figure(figsize=figsize)
+    for lang, vals in full_sub.items():
+        # Compute similarity for some source language
+        # or for the same language but between different models
+        repr1 = vals[exp1] if source is None else full_sub[source[exp1]]
+        repr2 = vals[exp2]
+
+        res = []
+        for layer_id in range(len(repr1)):
+            layer_repr1 = repr1[layer_id].detach()
+            layer_repr2 = repr2[layer_id].detach()
+            res.append(cka(layer_repr1, layer_repr2))
+        cka_results[f"{lang}_{exp1}-{lang}_{exp2}"] = res
+
+    df = pd.DataFrame(cka_results)
+    plot_per_layer_lineplot(
+        res_df=df,
+        title=title,
+        legend=legend,
+        linewidth=linewidth,
+        dashes=dashes,
+        marker=marker,
+        markersize=markersize,
+    )
+    save_img(savename)
+    return df
+
+
+# def cka_layer_by_layer_langs(
+#     full_sub: dict,
+#     exp_name1: str,
+#     exp_name2: str,
+#     source: str = "en",
+#     savename: str = None,
+#     title: str = None,
+#     legend: bool = True,
+#     figsize: tuple = FIGSIZE,
+#     linewidth: int = 3,
+#     dashes: bool = False,
+#     marker: str = "o",
+#     markersize: int = 8,
+# ) -> pd.DataFrame:
+#     plt.figure(figsize)
+#     cka_results = dict()
+#     source_vals = full_sub[source][exp_name1]
+#     for lang, vals in full_sub.items():
+#         if lang == source:
+#             continue
+
+#         ref_vals = vals[exp_name2]
+#         res = []
+#         for layer_id in range(len(ref_vals)):
+#             layer_source_vals = source_vals[layer_id].detach()
+#             layer_ref_vals = ref_vals[layer_id].detach()
+#             res.append(cka(layer_source_vals, layer_ref_vals))
+#         cka_results[f"{source}_{exp_name1}-{lang}_{exp_name2}"] = res
+
+#     df = pd.DataFrame(cka_results)
+#     plot_per_layer_lineplot(
+#         res_df=df,
+#         title=title,
+#         legend=legend,
+#         linewidth=linewidth,
+#         dashes=dashes,
+#         marker=marker,
+#         markersize=markersize,
+#     )
+#     return df
 
 
 def cka_diff_barplots(df, savename: str = None, figsize: tuple = FIGSIZE):
