@@ -13,6 +13,8 @@ from torch.utils.data import DataLoader, SequentialSampler
 from tqdm import tqdm
 from transformers import (AutoModelForMaskedLM, AutoTokenizer,
                           DataCollatorForLanguageModeling)
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from cross_lingual_subnets.data import chunk_texts
 
@@ -171,22 +173,42 @@ def get_perplexity(model, eval_dataloader):
 if __name__ == "__main__":
     data_collar = DataCollatorForLanguageModeling(tokenizer=tokenizer)
     datasets_by_l = {}
-    for lang in languages:
-        cur_dataset = get_dataset_head_masks(
-            dataset_name="mbelitsky/wikipedia_subset",
-            tokenizer=tokenizer,
-            n_examples_per_lang=100000,
-            seed=1234,
-            test_size=3000,
-            cache_dir=None,
-            languages=lang,
-            load_dataset_dict_path=f"wiki_datasets/{lang}",
-            save_dataset_dict_path=None,
-        )
 
-        datasets_by_l[lang] = cur_dataset["test"]
+    if os.path.exists('wiki_datasets'):
+        for lang in languages:
+            cur_dataset = get_dataset_head_masks(
+                dataset_name="mbelitsky/wikipedia_subset",
+                tokenizer=tokenizer,
+                n_examples_per_lang=100000,
+                seed=1234,
+                test_size=3000,
+                cache_dir=None,
+                languages=lang,
+                load_dataset_dict_path=f"wiki_datasets/{lang}",
+                save_dataset_dict_path=None,
+            )
 
-    base_path = "/content/cross-lingual-subnetworks/old_prune_output/"
+            datasets_by_l[lang] = cur_dataset["test"]
+
+    else:
+
+        full_dataset = get_dataset_head_masks(
+                dataset_name="mbelitsky/wikipedia_subset",
+                tokenizer=tokenizer,
+                n_examples_per_lang=100000,
+                seed=1234,
+                test_size=3000,
+                cache_dir=None,
+                languages=languages,
+                load_dataset_dict_path=None,
+                save_dataset_dict_path="wiki_datasets",
+            )
+
+        for lang in languages:
+
+            datasets_by_l[lang] = full_dataset[lang]['test']
+
+    base_path = "/content/drive/MyDrive/fixed_prune_output"
     for l_model in languages:
         cur_mask_path = os.path.join(base_path, f"{l_model}_seed_42_head_mask.npy")
         cur_mask = torch.tensor(np.load(cur_mask_path)).to("cuda")
@@ -199,3 +221,8 @@ if __name__ == "__main__":
             )
 
             cur_perplexity = get_perplexity(cur_model, eval_dataloader)
+
+            print(f"Model language: {l_model}")
+            print(f"Test language: {l_test}")
+            print(f"Perplexity: {cur_perplexity}")
+            print("\n")
