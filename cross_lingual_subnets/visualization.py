@@ -7,7 +7,6 @@ import torch
 
 from cross_lingual_subnets.cka import cka
 
-
 BASE_OUTPUT_PATH = "outputs/images/"
 FIGSIZE = (10, 7)
 LANGUAGES = ["en", "es", "ru", "ar", "de", "hi", "zh"]
@@ -28,7 +27,8 @@ MODEL_TYPE_TO_EXPERIMENT = {
 
 
 def load_encodings(
-    path_to_encodings: str,
+    path_to_sub_encodings: str,
+    path_to_full_encodings: str,
     max_length: int = None,
     languages: list = LANGUAGES,
     model_types: list = MODEL_TYPES,
@@ -36,8 +36,10 @@ def load_encodings(
 ) -> dict:
     """Loads sentence representations.
 
-    :param path_to_encodings: base path to the directory where all the encodings are
-    stored e.g. encodings/
+    :param path_to_sub_encodings: base path to the directory where all the subnetwork encodings
+    are stored e.g. encodings_20/
+    :param path_to_full_encodings: base path to the directory where all the full encodings are
+    stored e.g. encodings_full/
     :param max_length: limit to cut representations to save computation time, defaults
     to None
     :param languages: languages to load encodings for, defaults to ["en", "es", "ru",
@@ -52,6 +54,10 @@ def load_encodings(
     for lang in languages:
         full_sub[lang] = {}
         for model_type in model_types:
+            # FIXME: checking for "sub" is kinda hardcoding. Maybe not allow to have it as an argument?
+            path_to_encodings = (
+                path_to_full_encodings if model_type != "sub" else path_to_sub_encodings
+            )
             experiment = (
                 model_type_to_experiment[model_type][lang]
                 if model_type == "sub"
@@ -128,7 +134,7 @@ def cka_cross_layer_all_languages(
     exp_name1: str,
     exp_name2: str,
     savename: str = None,
-    figsize: tuple = (7, 13),
+    figsize: tuple | None = None,
 ):
     """Plot heatmap of cross-layer CKA similarities of representations, all languages.
 
@@ -143,6 +149,8 @@ def cka_cross_layer_all_languages(
     :param savename: where to save the image, defaults to None
     :param figsize: size of the figure, defaults to (7, 13)
     """
+    if figsize is None:
+        figsize = (7, 3.1 * (round(len(full_sub.keys()) / 2)))
     languages = full_sub.keys()
     fig, axs = plt.subplots(round(len(languages) / 2), 2, figsize=figsize)
     axs = axs.reshape(-1)
@@ -163,7 +171,13 @@ def cka_cross_layer_all_languages(
         df = df.sort_index(ascending=False)
 
         ax = sns.heatmap(df, ax=axs[i], cbar=i == 0, cbar_ax=None if i else cbar_ax)
-        ax.set(title=lang, xticks=df.index, yticks=df.columns)
+        ax.set(
+            title=lang,
+            # xticks=df.index + 0.5,
+            # xticklabels=df.index,
+            # yticks=df.columns + 0.5,
+            # yticklabels=reversed(df.columns),
+        )
 
     # Delete the last (if unused) subplot
     if len(languages) % 2 != 0:
@@ -241,9 +255,11 @@ def cka_layer_by_layer(
     cka_results = dict()
     plt.figure(figsize=figsize)
     for lang, vals in full_sub.items():
+        if source is not None and lang == source:
+            continue
         # Compute similarity for some source language
         # or for the same language but between different models
-        repr1 = vals[exp_name1] if source is None else full_sub[source[exp_name1]]
+        repr1 = vals[exp_name1] if source is None else full_sub[source][exp_name1]
         repr2 = vals[exp_name2]
 
         res = []
@@ -251,7 +267,9 @@ def cka_layer_by_layer(
             layer_repr1 = repr1[layer_id].detach()
             layer_repr2 = repr2[layer_id].detach()
             res.append(cka(layer_repr1, layer_repr2))
-        cka_results[f"{lang}_{exp_name1}-{lang}_{exp_name2}"] = res
+
+        lang1 = source if source is not None else lang
+        cka_results[f"{lang1}_{exp_name1}-{lang}_{exp_name2}"] = res
 
     df = pd.DataFrame(cka_results)
     plot_per_layer_lineplot(
@@ -275,7 +293,7 @@ def cka_diff_barplots(df, savename: str = None, figsize: tuple = FIGSIZE):
     :param figsize: figure size, defaults to FIGSIZE
     """
     lang_pairs = df.index
-    fig, axs = plt.subplots(len(lang_pairs), 1, figsize=figsize)
+    fig, axs = plt.subplots(len(lang_pairs), 1, figsize=figsize, sharex=True)
     ymin = df.min().min()
     ymax = df.max().max()
     cols = sns.color_palette()
@@ -283,5 +301,7 @@ def cka_diff_barplots(df, savename: str = None, figsize: tuple = FIGSIZE):
         sns.barplot(data=df.loc[lang_pair], ax=axs[i], color=cols[i])
         axs[i].set_ylim([ymin, ymax])
         axs[i].grid()
+        axs[i].set_yticks([ymax, 0, ymin])
+        axs[i].set_yticklabels([round(ymax, 2), 0, round(ymin, 2)])
 
     save_img(savename)
