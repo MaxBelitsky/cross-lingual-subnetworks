@@ -8,7 +8,7 @@ from transformers import (AutoModelForMaskedLM, AutoTokenizer,
                           DataCollatorForLanguageModeling, TrainingArguments)
 
 from cross_lingual_subnets.constants import Datasets
-from cross_lingual_subnets.create_subsets import WIKIPEDIA_DUMPS
+from scripts.create_subsets import WIKIPEDIA_DUMPS
 from cross_lingual_subnets.data import get_dataset
 from cross_lingual_subnets.trainer import CustomTrainer
 from cross_lingual_subnets.utils import set_device, set_seed
@@ -121,6 +121,12 @@ if __name__ == "__main__":
         default=None,
         help="The wandb run id to resume training from",
     )
+    parser.add_argument(
+        "--report_to",
+        type=str,
+        default="wandb",
+        help="The report to. Default is 'wandb'. Set 'none' to disable reporting.",
+    )
 
     args = parser.parse_args()
 
@@ -165,7 +171,7 @@ if __name__ == "__main__":
         logging_steps=logging_steps,
         eval_steps=logging_steps,
         save_steps=save_steps,
-        report_to="wandb",
+        report_to=args.report_to,
         use_mps_device=args.use_mps,
         data_seed=args.seed,
         seed=args.seed,

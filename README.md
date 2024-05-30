@@ -65,6 +65,18 @@ To start training with the default arguments:
 python -m scripts.train --dataset_name mbelitsky/wikipedia_subset --languages en es ru de zh ar hi ur
 ```
 
+Results:
+| Language | Perplexity before fine-tuning | Perplexity after fine-tuning |
+|----------|:-----------------------------:|------------------------------|
+| en       | 5.65                          | 4.15                         |
+| es       | 5.07                          | 3.75                         |
+| ru       | 3.80                          | 3.00                         |
+| de       | 5.30                          | 3.93                         |
+| zh       | 10.46                         | 6.73                         |
+| ar       | 7.05                          | 4.29                         |
+| ur       | 7.39                          | 4.50                         |
+| hi       | 6.84                          | 4.50                         |
+
 # Additional info
 ## MLM Data Preparation strategy
 - N languages selected
@@ -72,3 +84,73 @@ python -m scripts.train --dataset_name mbelitsky/wikipedia_subset --languages en
 - The articles are split and/or concatenated into chunks equal to the model context window size
 - The training dataset is the shuffeled concatenation of all language subsets
 - The test set is split by language (the default number of test examples for each language is set to 3000)
+
+
+
+# Running the scripts
+### Encoding
+This script encodes sentences using language models and saves the encodings.
+```
+python -m scripts.encode --output_dir data/encodings --max_sentences 5000
+```
+
+Arguments:
+| Argument                      | Type  | Required | Default Value                          | Description                                                                                  |
+|-------------------------------|-------|----------|----------------------------------------|----------------------------------------------------------------------------------------------|
+| `--batch_size`                | `int` | No       | 32                                     | The batch size of the dataloader.                                                            |
+| `--max_sentences`             | `int` | No       | 1000                                   | The amount of sentences to encode.                                                           |
+| `--data_path`                 | `str` | No       | `data/text/bible_parallel_corpus.json` | The path to the data file.                                                                   |
+| `--output_dir`                | `str` | No       | `data/encodings`                       | Encodings output directory.                                                                  |
+| `--pruned_models_dir_prefix`  | `str` | No       | `artifacts/pruned`                     | The prefix of the pruned models directory.                                                   |
+| `--pruned_models_dir_postfix` | `str` | No       | `mlm_finetuned`                        | The postfix of the pruned models directory.                                                  |
+| `--languages`                 | `str` | No       | `["en", "de", "es", "hi", "ru", "zh", "ar"]` | The languages of subnetworks to use for encoding. The options should be keys of `WIKIPEDIA_DUMPS`. |
+| `--use_base`                  |       | No       |                                        | Use the base model for encoding.                                                             |
+| `--use_mlm_finetuned`         |       | No       |                                        | Use the MLM finetuned model for encoding.                                                    |
+
+### Pruning
+This script generates a pruned model based on a specified head mask.
+
+```
+python -m scripts.prune --model_path models/fine-tuned-model --mask_dir fixed_prune_output --output_dir artifacts/pruned --languages ar de en es hi ru zh
+```
+
+Arguments:
+
+| Argument      | Type  | Required | Description                                                                                  |
+|----------------|-------|----------|----------------------------------------------------------------------------------------------|
+| `--model_path` | `str` | Yes      | Path to the checkpoint for pruning. This should point to the model file that you want to prune. |
+| `--mask_dir`   | `str` | Yes      | Path to the head mask to use. This should be a directory containing the mask that specifies which heads to prune. |
+| `--output_dir` | `str` | Yes      | Path to save the pruned model. This is where the pruned model will be stored after the pruning process is completed. |
+| `--languages`  | `str` | Yes      | The languages for creating subnetworks. This argument specifies the languages for which the subnetworks are to be created. The options should be keys of `WIKIPEDIA_DUMPS`. |
+
+
+### Training
+
+```
+python -m scripts.train --dataset_name mbelitsky/wikipedia_subset --languages en es ru de zh ar hi ur
+```
+
+Arguments:
+| Argument                      | Type    | Required | Default Value                          | Description                                                                                 |
+|-------------------------------|---------|----------|----------------------------------------|---------------------------------------------------------------------------------------------|
+| `--dataset_name`              | `str`   | Yes      |                                        | The datasets to train on. Choices are values from `Datasets.values()`.                      |
+| `--model_checkpoint`          | `str`   | No       | `FacebookAI/xlm-roberta-base`          | The model variant to train.                                                                 |
+| `--output_dir`                | `str`   | No       | `models/`                              | The output directory for the model.                                                         |
+| `--seed`                      | `int`   | No       | 1234                                   | The random seed for reproducibility.                                                        |
+| `--device`                    | `str`   | No       | None                                   | The device to use for training.                                                             |
+| `--batch_size`                | `int`   | No       | 8                                      | The batch size.                                                                             |
+| `--logging_steps`             | `int`   | No       | None                                   | The number of steps before logging metrics.                                                 |
+| `--save_steps`                | `int`   | No       | None                                   | The number of steps before saving checkpoints.                                              |
+| `--epochs`                    | `int`   | No       | 1                                      | The number of epochs.                                                                       |
+| `--use_mps`                   |         | No       |                                        | Indicates whether to use MPS device.                                                        |
+| `--use_fp16`                  |         | No       |                                        | Indicates whether to use mixed precision during training.                                   |
+| `--eval_only`                 |         | No       |                                        | Indicates whether to skip training and only evaluate.                                       |
+| `--lr`                        | `float` | No       | 2e-5                                   | The learning rate.                                                                          |
+| `--weight_decay`              | `float` | No       | 0.01                                   | The weight decay.                                                                           |
+| `--examples_per_lang`         | `int`   | No       | 100,000                                | The number of examples to use per language.                                                 |
+| `--test_examples_per_lang`    | `int`   | No       | 3,000                                  | The number of examples to use for testing per language.                                     |
+| `--languages`                 | `str`   | No       | All available in `WIKIPEDIA_DUMPS.keys()` | The languages to include in the dataset. If not provided, all languages are included.        |
+| `--cache_dir`                 | `str`   | No       | None                                   | The cache directory for the dataset.                                                        |
+| `--resume_from_checkpoint`    | `str`   | No       | None                                   | The checkpoint to resume training from.                                                     |
+| `--last_run_id`               | `str`   | No       | None                                   | The wandb run ID to resume training from.                                                   |
+| `--report_to`                 | `str`   | No       | `wandb`                                | The reporting tool. Default is 'wandb'. Set 'none' to disable reporting.                    |

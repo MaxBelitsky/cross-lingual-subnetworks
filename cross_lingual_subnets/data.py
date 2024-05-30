@@ -1,10 +1,14 @@
 import logging
 import os
 from itertools import chain
+from collections import defaultdict
+import json
 
 from datasets import DatasetDict, concatenate_datasets, load_dataset
+from torch.utils.data import DataLoader
 
 from cross_lingual_subnets.constants import Datasets
+from cross_lingual_subnets.utils import collate_batch
 
 logger = logging.getLogger(__name__)
 
@@ -202,3 +206,34 @@ def chunk_texts(examples, chunk_size=512):
     # Create a new labels column
     result["labels"] = result["input_ids"].copy()
     return result
+
+
+def get_bible_dataloaders_by_language(
+    batch_size, max_sentences, tokenizer, path: str
+) -> tuple[dict, list]:
+    with open(path, "r", encoding="ISO-8859-1") as f:
+        texts = json.load(f)
+
+    texts_by_language = defaultdict(list)
+    languages = texts[0].keys()
+    for text in texts:
+        for lang in languages:
+            texts_by_language[lang].append(text[lang])
+
+    # Define a custom collate function which takes in a tokenzier
+    collate_fn = lambda batch: collate_batch(batch, tokenizer=tokenizer)  # noqa
+
+    data_loader_kwargs = {
+        "batch_size": batch_size,
+        "collate_fn": collate_fn,
+        "pin_memory": True,
+    }
+
+    dataloaders = {
+        language: DataLoader(
+            texts_by_language[language][: max_sentences], **data_loader_kwargs
+        )
+        for language in languages
+    }
+
+    return dataloaders, languages

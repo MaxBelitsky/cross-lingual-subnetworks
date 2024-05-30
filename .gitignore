@@ -170,3 +170,5 @@ prune_output/
 *.job
 new_prune_output/
 old_prune_output/
+artifacts/
+*prune_output

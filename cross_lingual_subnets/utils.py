@@ -40,3 +40,19 @@ def to_tensor(x) -> torch.tensor:
         x = torch.tensor(x)
 
     return x
+
+
+def mean_pooling(hidden_state, attention_mask):
+    """Function to perform mean pooling on hidden states."""
+    input_mask_expanded = (
+        attention_mask.unsqueeze(-1).expand(hidden_state.size()).float()
+    )
+    return torch.sum(hidden_state * input_mask_expanded, 1) / torch.clamp(
+        input_mask_expanded.sum(1), min=1e-9
+    )
+
+
+def collate_batch(batch, tokenizer):
+    """Function to tokenize a batch of examples."""
+    encoded_input = tokenizer(batch, return_tensors="pt", padding=True)
+    return encoded_input
