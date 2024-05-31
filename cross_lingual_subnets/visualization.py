@@ -7,7 +7,7 @@ import torch
 
 from cross_lingual_subnets.cka import cka
 
-BASE_OUTPUT_PATH = "outputs/images/"
+BASE_OUTPUT_PATH = "outputs/images2/"
 FIGSIZE = (10, 7)
 LANGUAGES = ["en", "es", "ru", "ar", "de", "hi", "zh"]
 MODEL_TYPES = ["base", "finetuned", "sub"]
@@ -70,10 +70,54 @@ def load_encodings(
             if max_length is not None and max_length > 0:
                 new_encoding_dict = {}
                 for layer, values in encoding_dict.items():
+                    if len(encoding_dict.keys()) == 13 and layer == 0:
+                        continue
                     new_encoding_dict[layer] = values[:max_length]
                 encoding_dict = new_encoding_dict
 
             full_sub[lang][model_type] = encoding_dict
+
+    return full_sub
+
+
+def load_encodings_one_source_sub(
+    path_to_sub_encodings: str,
+    source: str,
+    max_length: int = None,
+    languages: list = LANGUAGES,
+    model_type_to_experiment: dict = MODEL_TYPE_TO_EXPERIMENT,
+) -> dict:
+    """Loads sentence representations.
+
+    :param path_to_sub_encodings: base path to the directory where all the subnetwork encodings
+    are stored e.g. encodings_20/
+    :param path_to_full_encodings: base path to the directory where all the full encodings are
+    stored e.g. encodings_full/
+    :param max_length: limit to cut representations to save computation time, defaults
+    to None
+    :param languages: languages to load encodings for, defaults to ["en", "es", "ru",
+     "ar", "de", "hi", "zh"]
+    :param model_types: model types to load encodings for, defaults to ["base",
+     "finetuned", "sub"]
+    :param model_type_to_experiment: dictionary for each language which sub-directory
+     was used, defaults to MODEL_TYPE_TO_EXPERIMENT
+    :return: loaded dictionary
+    """
+    full_sub = {}
+    experiment = model_type_to_experiment["sub"][source]
+    for lang in languages:
+        exp_lang = os.path.join(experiment, f"{lang}.pt")
+        full_path = os.path.join(path_to_sub_encodings, exp_lang)
+
+        encoding_dict = torch.load(full_path)
+        if max_length is not None and max_length > 0:
+            new_encoding_dict = {}
+            for layer, values in encoding_dict.items():
+                new_encoding_dict[layer] = values[:max_length]
+            encoding_dict = new_encoding_dict
+
+        full_sub[lang] = {}
+        full_sub[lang]["sub"] = encoding_dict
 
     return full_sub
 
@@ -255,8 +299,8 @@ def cka_layer_by_layer(
     cka_results = dict()
     plt.figure(figsize=figsize)
     for lang, vals in full_sub.items():
-        if source is not None and lang == source:
-            continue
+        # if source is not None and lang == source:
+        #     continue
         # Compute similarity for some source language
         # or for the same language but between different models
         repr1 = vals[exp_name1] if source is None else full_sub[source][exp_name1]
