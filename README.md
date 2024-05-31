@@ -1,10 +1,6 @@
 # cross-lingual-subnets
 
-Investigating the cross-lingual sharing mechanism of multilingual models through their subnetworks.
-
-TODO: add further explanation about the project (e.g. abstract)
-
-TODO: add edited poster
+We investigate to what extent computation is shared across languages in multilingual models. In particular, we prune language-specific subnetworks from a multilingual model and check how much overlap there is between subnetworks for different languages and how these subnetworks perform across other languages. We also measure the similarity of the hidden states of a multilingual model for parallel sentences in different languages. All of these experiments suggest that a substantial amount of computation is being shared across languages in the multilingual model we use (XLM-R).
 
 ## Setup
 - Create python virtual environment: `python -m venv venv`
