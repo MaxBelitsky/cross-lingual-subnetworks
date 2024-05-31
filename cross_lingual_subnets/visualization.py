@@ -7,7 +7,7 @@ import torch
 
 from cross_lingual_subnets.cka import cka
 
-BASE_OUTPUT_PATH = "outputs/images2/"
+BASE_OUTPUT_PATH = "outputs/images/"
 FIGSIZE = (10, 7)
 LANGUAGES = ["en", "es", "ru", "ar", "de", "hi", "zh"]
 MODEL_TYPES = ["base", "finetuned", "sub"]
