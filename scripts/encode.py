@@ -3,7 +3,7 @@ import os
 
 import torch
 from torch.utils.data import DataLoader
-from transformers import AutoModelForMaskedLM, AutoTokenizer
+from transformers import AutoModelForMaskedLM, AutoTokenizer, XLMRobertaModel, XLMRobertaConfig
 from tqdm.auto import tqdm
 
 from cross_lingual_subnets.constants import Experiments
@@ -113,7 +113,14 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         help="Use the MLM finetuned model for encoding",
     )
+    parser.add_argument(
+        "--use_random_model",
+        action=argparse.BooleanOptionalAction,
+        help="Use a random model for encoding",
+    )
     args = parser.parse_args()
+
+    print(args)
 
     # Load language specific subnetworks
     pairs = [
@@ -129,6 +136,8 @@ if __name__ == "__main__":
         pairs.append(("FacebookAI/xlm-roberta-base", Experiments.XLMR_BASE))
     if args.use_mlm_finetuned:
         pairs.append(("artifacts/xlmr-mlm-finetuned", Experiments.XLMR_MLM_FINETUNED))
+    if args.use_random_model:
+        pairs.append(("FacebookAI/xlm-roberta-base", Experiments.XLMR_RANDOM))
 
     print("Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained("FacebookAI/xlm-roberta-base")
@@ -142,7 +151,13 @@ if __name__ == "__main__":
 
     for checkpoint, experiment in pairs:
         print("Loading model...")
-        model = AutoModelForMaskedLM.from_pretrained(checkpoint)
+
+        if args.use_random_model:
+            print("Initializing the model with random weights")
+            config = XLMRobertaConfig.from_pretrained(checkpoint)
+            model = XLMRobertaModel(config)
+        else:
+            model = AutoModelForMaskedLM.from_pretrained(checkpoint)
 
         for language in languages:
             print(f"Encoding with a === {language} === subnetwork")

@@ -13,6 +13,7 @@ class Datasets(str, ExtendedEnum):
 
 
 class Experiments(str, Enum):
+    XLMR_RANDOM = "xlmr_random"
     XLMR_BASE = "xlmr_base"
     XLMR_MLM_FINETUNED = "xlmr_mlm_finetuned"
     AR_SUB_MLM_FINETUNED = "ar_sub_mlm_finetuned"
